@@ -419,8 +419,10 @@ class DispatchPlaybackService : MediaSessionService() {
             .build()
 
         val dataSourceFactory = DataSource.Factory { TtsStreamDataSource() }
-        val mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory)
-            .createMediaSource(mediaItem)
+        val mediaSource = ProgressiveMediaSource.Factory(
+            dataSourceFactory,
+            RawPcmExtractor.factory(KOKORO_SAMPLE_RATE),
+        ).createMediaSource(mediaItem)
 
         p.clearMediaItems()
         p.addMediaSource(mediaSource)
@@ -507,13 +509,26 @@ class DispatchPlaybackService : MediaSessionService() {
             inputStream = response!!.body?.byteStream()
                 ?: throw IOException("Kokoro stream returned empty body")
 
+            // Strip the 44-byte WAV header. Kokoro sends placeholder data_size=0x7FFFFF00
+            // which causes WavExtractor to never reach STATE_ENDED (it recalculates bytesLeft
+            // from the header size every read call). By consuming the header here and using
+            // RawPcmExtractor, ExoPlayer reads raw PCM and stops cleanly at END_OF_INPUT.
+            val header = ByteArray(WAV_HEADER_BYTES)
+            var headerRead = 0
+            while (headerRead < WAV_HEADER_BYTES) {
+                val n = inputStream!!.read(header, headerRead, WAV_HEADER_BYTES - headerRead)
+                if (n == -1) throw IOException("Stream ended before WAV header complete")
+                headerRead += n
+            }
+
             opened = true
 
             // REQUIRED: signal transfer started AFTER successful open
             transferStarted(dataSpec)
 
             val connectMs = System.currentTimeMillis() - req.startTime
-            Timber.i("[trace:%s] TtsStreamDataSource: connected in %dms", traceId ?: "none", connectMs)
+            Timber.i("[trace:%s] TtsStreamDataSource: connected, header stripped, %dms",
+                traceId ?: "none", connectMs)
 
             return C.LENGTH_UNSET.toLong()
         }
@@ -890,6 +905,7 @@ class DispatchPlaybackService : MediaSessionService() {
         private const val READ_TIMEOUT_S = 30L
         private const val WAV_HEADER_SIZE = 44L
         private const val WAV_HEADER_BYTES = 44
+        private const val KOKORO_SAMPLE_RATE = 24000
         private const val MAX_RETRIES = 2
         private const val RETRY_DELAY_MS = 2000L
 
