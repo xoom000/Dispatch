@@ -15,6 +15,7 @@ import dev.digitalgnosis.dispatch.config.TokenManager
 import dev.digitalgnosis.dispatch.data.DispatchMessage
 import dev.digitalgnosis.dispatch.data.MessageRepository
 import dev.digitalgnosis.dispatch.logging.FileLogTree
+import dev.digitalgnosis.dispatch.playback.DispatchPlaybackService
 import dev.digitalgnosis.dispatch.ui.MainActivity
 import timber.log.Timber
 
@@ -102,22 +103,26 @@ class DispatchFcmService : FirebaseMessagingService() {
         val spokenText = "$sender says: $messageText"
         val resolvedVoice = voice ?: voiceForSender(sender)
 
-        Timber.i("FCM -> starting AudioPlaybackService at +%dms: voice=%s",
+        Timber.i("FCM -> starting DispatchPlaybackService at +%dms: voice=%s",
             System.currentTimeMillis() - receiveTime, resolvedVoice)
 
+        val traceId = data["trace_id"]
+
         try {
-            val serviceIntent = AudioPlaybackService.createIntent(
+            val serviceIntent = DispatchPlaybackService.createIntent(
                 context = this,
                 text = spokenText,
                 voice = resolvedVoice,
                 sender = sender,
-                message = messageText
+                message = messageText,
+                traceId = traceId,
+                fcmReceiveTime = receiveTime,
             )
             startForegroundService(serviceIntent)
             Timber.i("FCM -> foreground service started in %dms",
                 System.currentTimeMillis() - receiveTime)
         } catch (e: Exception) {
-            Timber.e(e, "FCM -> FAILED to start AudioPlaybackService: %s", e.message)
+            Timber.e(e, "FCM -> FAILED to start DispatchPlaybackService: %s", e.message)
         }
 
         val notifText = if (fileName != null) "$messageText [$fileName]" else messageText

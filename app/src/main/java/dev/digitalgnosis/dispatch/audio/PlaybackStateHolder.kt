@@ -7,7 +7,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Shared playback state between AudioPlaybackService and Compose UI.
+ * Shared playback state between DispatchPlaybackService and Compose UI.
  *
  * The service writes state here. The MiniPlayerBar composable reads it.
  * Singleton via Hilt so both sides see the same instance.
@@ -18,7 +18,7 @@ class PlaybackStateHolder @Inject constructor() {
     private val _state = MutableStateFlow(PlaybackUiState())
     val state: StateFlow<PlaybackUiState> = _state.asStateFlow()
 
-    /** Called by AudioPlaybackService when a new message starts playing. */
+    /** Called by DispatchPlaybackService when a new message starts playing. */
     fun onPlaybackStarted(sender: String, message: String, voice: String) {
         _state.value = PlaybackUiState(
             isActive = true,
