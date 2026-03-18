@@ -76,7 +76,6 @@ afterEvaluate {
 }
 
 dependencies {
-    implementation("com.google.code.gson:gson:2.11.0")  // GitHub API JSON parsing for self-update
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

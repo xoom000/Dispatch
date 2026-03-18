@@ -3,12 +3,11 @@ package dev.digitalgnosis.dispatch.update
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import androidx.core.content.FileProvider
-import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import timber.log.Timber
 import java.io.File
 import java.net.HttpURLConnection
@@ -26,7 +25,7 @@ class UpdateChecker(
     private val githubUsername: String = GITHUB_USERNAME,
     private val repoName: String = REPO_NAME,
 ) {
-    private val gson = Gson()
+    private val json = Json { ignoreUnknownKeys = true }
 
     /**
      * Checks GitHub releases for a newer version than currently installed.
@@ -43,10 +42,10 @@ class UpdateChecker(
             }
 
             val latestVersionCode = extractVersionCodeFromBody(latestRelease.body)
-                ?: parseVersionCode(latestRelease.tag_name)
+                ?: parseVersionCode(latestRelease.tagName)
 
             Timber.d("UpdateChecker: current=%d, latest=%d (tag=%s)",
-                currentVersionCode, latestVersionCode, latestRelease.tag_name)
+                currentVersionCode, latestVersionCode, latestRelease.tagName)
 
             if (latestVersionCode > currentVersionCode) {
                 val apkAsset = latestRelease.assets.find {
@@ -54,19 +53,19 @@ class UpdateChecker(
                 }
 
                 if (apkAsset == null) {
-                    Timber.w("UpdateChecker: no APK in release %s", latestRelease.tag_name)
+                    Timber.w("UpdateChecker: no APK in release %s", latestRelease.tagName)
                     return@withContext null
                 }
 
                 UpdateInfo(
                     versionCode = latestVersionCode,
-                    versionName = latestRelease.tag_name.removePrefix("v"),
-                    downloadUrl = apkAsset.browser_download_url,
+                    versionName = latestRelease.tagName.removePrefix("v"),
+                    downloadUrl = apkAsset.browserDownloadUrl,
                     releaseNotes = latestRelease.body
                         .replace(Regex("<!--.*?-->"), "")
                         .trim()
                         .ifEmpty { "No release notes provided" },
-                    releaseDate = latestRelease.published_at,
+                    releaseDate = latestRelease.publishedAt,
                     mandatory = false
                 )
             } else {
@@ -138,9 +137,9 @@ class UpdateChecker(
                 return null
             }
 
-            val json = connection.inputStream.bufferedReader().use { it.readText() }
+            val responseBody = connection.inputStream.bufferedReader().use { it.readText() }
             connection.disconnect()
-            gson.fromJson(json, GitHubRelease::class.java)
+            json.decodeFromString<GitHubRelease>(responseBody)
         } catch (e: Exception) {
             Timber.e(e, "UpdateChecker: failed to fetch GitHub release")
             null

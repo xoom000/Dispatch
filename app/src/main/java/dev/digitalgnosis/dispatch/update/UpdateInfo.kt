@@ -1,5 +1,8 @@
 package dev.digitalgnosis.dispatch.update
 
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
 /**
  * Represents information about an available app update.
  */
@@ -15,17 +18,19 @@ data class UpdateInfo(
 /**
  * Response from GitHub API for latest release.
  */
+@Serializable
 data class GitHubRelease(
-    val tag_name: String,
+    @SerialName("tag_name") val tagName: String,
     val name: String,
     val body: String,
-    val published_at: String,
+    @SerialName("published_at") val publishedAt: String,
     val assets: List<GitHubAsset>
 )
 
+@Serializable
 data class GitHubAsset(
     val name: String,
     val url: String,
-    val browser_download_url: String,
+    @SerialName("browser_download_url") val browserDownloadUrl: String,
     val size: Long
 )
