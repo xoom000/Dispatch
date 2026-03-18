@@ -16,7 +16,12 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.BaseDataSource
+import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DataSpec
+import androidx.media3.datasource.FileDataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
@@ -42,6 +47,10 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import timber.log.Timber
 import java.io.File
+import java.io.IOException
+import java.io.InputStream
+import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -62,7 +71,8 @@ import java.util.concurrent.atomic.AtomicInteger
  *
  * Communication flow:
  *   FCM push → DispatchFcmService → startForegroundService(intent) → here
- *   onStartCommand → download WAV via OkHttp → save to temp file → ExoPlayer plays it
+ *   onStartCommand → ExoPlayer opens streaming POST to Kokoro → plays audio as it generates
+ *   First audio in ~500ms. No temp file. No waiting for full generation.
  *
  * Earbud control:
  *   - Single tap (play/pause): ExoPlayer handles natively
@@ -96,6 +106,27 @@ class DispatchPlaybackService : MediaSessionService() {
         .connectTimeout(CONNECT_TIMEOUT_S, TimeUnit.SECONDS)
         .readTimeout(READ_TIMEOUT_S, TimeUnit.SECONDS)
         .build()
+
+    /** Longer timeout for streaming — Kokoro may take 10s+ to finish generating. */
+    private val streamingClient = OkHttpClient.Builder()
+        .connectTimeout(CONNECT_TIMEOUT_S, TimeUnit.SECONDS)
+        .readTimeout(60L, TimeUnit.SECONDS)
+        .build()
+
+    /**
+     * Registry of pending stream requests. Keyed by unique stream ID.
+     * When ExoPlayer opens a tts:// URI, the DataSource looks up the
+     * request params here and POSTs to Kokoro's streaming endpoint.
+     */
+    private val streamRegistry = ConcurrentHashMap<String, StreamRequest>()
+
+    private data class StreamRequest(
+        val text: String,
+        val voice: String,
+        val speed: Float,
+        val traceId: String?,
+        val startTime: Long = System.currentTimeMillis(),
+    )
 
     // ── Lifecycle ───────────────────────────────────────────────────
 
@@ -159,9 +190,9 @@ class DispatchPlaybackService : MediaSessionService() {
         Timber.i("[trace:%s] DispatchPlaybackService: sender=%s, voice=%s, text=%d chars, pending=%d, fcm->service=%dms",
             traceId ?: "none", sender, voice, text.length, count, serviceLatencyMs)
 
-        // Promote to foreground IMMEDIATELY during download window.
+        // Promote to foreground IMMEDIATELY.
         // MediaSessionService will take over notification once ExoPlayer has media items.
-        startForeground(NOTIFICATION_ID, buildDownloadNotification("Downloading from $sender..."))
+        startForeground(NOTIFICATION_ID, buildDownloadNotification("Streaming from $sender..."))
 
         // If player is paused from a stale earbud tap, auto-resume for new message
         player?.let { p ->
@@ -175,21 +206,9 @@ class DispatchPlaybackService : MediaSessionService() {
         playbackState.onPlaybackStarted(sender, messageText, voice)
         playbackState.onQueueCountChanged(count)
 
-        // Download + queue playback
-        serviceScope.launch(Dispatchers.IO) {
-            val wavFile = downloadWav(text, voice, traceId)
-
-            if (wavFile != null) {
-                withContext(Dispatchers.Main) {
-                    queueMediaItem(wavFile, sender, traceId, fcmReceiveTime)
-                }
-            } else {
-                // GPU TTS failed — fall back to Piper on-device TTS
-                Timber.w("[trace:%s] DispatchPlaybackService: download failed, falling back to Piper", traceId ?: "none")
-                ttsEngine.speakBlocking(sender, messageText)
-                onMessageComplete(traceId, fcmReceiveTime)
-            }
-        }
+        // Stream audio — ExoPlayer POSTs to Kokoro and plays as bytes arrive.
+        // No download step. First audio in ~500ms.
+        queueStreamingItem(text, voice, sender, traceId, fcmReceiveTime)
 
         return START_STICKY
     }
@@ -321,6 +340,130 @@ class DispatchPlaybackService : MediaSessionService() {
         val queueMs = if (fcmReceiveTime > 0) System.currentTimeMillis() - fcmReceiveTime else -1L
         Timber.i("[trace:%s] DispatchPlaybackService: queued MediaItem, total=%d items, fcm->queue=%dms",
             traceId ?: "none", p.mediaItemCount, queueMs)
+    }
+
+    // ── Streaming TTS Playback ─────────────────────────────────────
+
+    /**
+     * Queue a streaming TTS item. ExoPlayer opens the connection itself,
+     * POSTs to Kokoro's /api/tts/stream endpoint, and plays audio as
+     * chunks arrive. First audio in ~500ms instead of 2-5s.
+     *
+     * Must be called on main thread.
+     */
+    @OptIn(UnstableApi::class)
+    private fun queueStreamingItem(
+        text: String,
+        voice: String,
+        sender: String,
+        traceId: String?,
+        fcmReceiveTime: Long,
+    ) {
+        val p = player ?: return
+
+        val streamId = UUID.randomUUID().toString()
+        streamRegistry[streamId] = StreamRequest(text, voice, 1.0f, traceId)
+
+        val mediaItem = MediaItem.Builder()
+            .setUri("tts://stream/$streamId")
+            .setMediaId(traceId ?: streamId)
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle("Dispatch from $sender")
+                    .setArtist(sender)
+                    .build()
+            )
+            .build()
+
+        val dataSourceFactory = DataSource.Factory { TtsStreamDataSource() }
+        val mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory)
+            .createMediaSource(mediaItem)
+
+        if (p.playbackState == Player.STATE_IDLE || p.playbackState == Player.STATE_ENDED) {
+            p.clearMediaItems()
+            p.addMediaSource(mediaSource)
+            p.prepare()
+            p.play()
+        } else {
+            p.addMediaSource(mediaSource)
+        }
+
+        val queueMs = if (fcmReceiveTime > 0) System.currentTimeMillis() - fcmReceiveTime else -1L
+        Timber.i("[trace:%s] DispatchPlaybackService: queued STREAM item, pending=%d, fcm->queue=%dms",
+            traceId ?: "none", p.mediaItemCount, queueMs)
+    }
+
+    /**
+     * Custom DataSource that POSTs to Kokoro's streaming TTS endpoint
+     * and feeds audio bytes directly to ExoPlayer as they generate.
+     *
+     * ExoPlayer calls open() → we POST to Kokoro, get a chunked response.
+     * ExoPlayer calls read() → we hand it bytes from the response stream.
+     * ExoPlayer starts playback as soon as it has the WAV header + first PCM chunk.
+     */
+    @OptIn(UnstableApi::class)
+    private inner class TtsStreamDataSource : BaseDataSource(/* isNetwork= */ true) {
+
+        private var response: okhttp3.Response? = null
+        private var inputStream: InputStream? = null
+        private var streamId: String? = null
+
+        override fun open(dataSpec: DataSpec): Long {
+            streamId = dataSpec.uri.lastPathSegment
+                ?: throw IOException("Missing stream ID in URI: ${dataSpec.uri}")
+
+            val req = streamRegistry.remove(streamId!!)
+                ?: throw IOException("Unknown stream ID: $streamId")
+
+            val payload = JSONObject().apply {
+                put("text", req.text)
+                put("voice", req.voice)
+                put("speed", req.speed.toDouble())
+            }
+
+            val requestBuilder = Request.Builder()
+                .url(TailscaleConfig.TTS_STREAM_SERVER)
+                .post(payload.toString().toRequestBody("application/json".toMediaType()))
+
+            req.traceId?.let { requestBuilder.header("X-Trace-Id", it) }
+
+            val firstChunkMs = System.currentTimeMillis() - req.startTime
+            Timber.i("[trace:%s] TtsStreamDataSource: opening POST to Kokoro, setup=%dms",
+                req.traceId ?: "none", firstChunkMs)
+
+            response = streamingClient.newCall(requestBuilder.build()).execute()
+
+            if (!response!!.isSuccessful) {
+                val code = response!!.code
+                response!!.close()
+                throw IOException("Kokoro stream returned HTTP $code")
+            }
+
+            inputStream = response!!.body?.byteStream()
+                ?: throw IOException("Kokoro stream returned empty body")
+
+            val connectMs = System.currentTimeMillis() - req.startTime
+            Timber.i("[trace:%s] TtsStreamDataSource: connected, first bytes arriving, total=%dms",
+                req.traceId ?: "none", connectMs)
+
+            // LENGTH_UNSET = streaming/unknown length — ExoPlayer won't expect a fixed size
+            return C.LENGTH_UNSET.toLong()
+        }
+
+        override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
+            val stream = inputStream ?: return C.RESULT_END_OF_INPUT
+            val bytesRead = stream.read(buffer, offset, length)
+            return if (bytesRead == -1) C.RESULT_END_OF_INPUT else bytesRead
+        }
+
+        override fun getUri(): Uri? = streamId?.let { Uri.parse("tts://stream/$it") }
+
+        override fun close() {
+            try { inputStream?.close() } catch (_: Exception) {}
+            try { response?.close() } catch (_: Exception) {}
+            inputStream = null
+            response = null
+        }
     }
 
     /** Called when a message finishes (playback complete or fallback done). */
