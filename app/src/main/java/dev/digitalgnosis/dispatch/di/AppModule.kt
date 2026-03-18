@@ -22,7 +22,7 @@ object AppModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): DispatchDatabase =
         Room.databaseBuilder(context, DispatchDatabase::class.java, "dispatch.db")
-            .fallbackToDestructiveMigration()
+            .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
 
     @Provides
