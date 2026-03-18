@@ -1,0 +1,55 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+/build
+/app/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+google-services.json
+*.jks
+*.keystore
+
+# Firebase service account keys — NEVER commit
+*-firebase-adminsdk-*.json
+service-account*.json
+
+# AI tool artifacts
+.gemini/
+.grok/
+.kotlin/
+.claude/
+
+# Node (if used for tooling)
+node_modules/
+package-lock.json
+package.json
+
+# Scratch images / screenshots
+*.png
+*.jpg
+grok_image_*
+
+# cmail inbox artifacts
+inbox/
+
+# Research artifacts (not source)
+research/
+
+# Agent/respawn artifacts
+.respawn/
+
+# Scratch/planning docs (not source)
+DEPENDENCY-AUDIT.md
+DISPATCH-UI-REDESIGN.md
+GEMINI.md
+PROJECT-ARCHITECTURE.md
+PROJECT-CONTEXT.md
+=2.0.0
+
+# Large binary files — NEVER commit
+*.apk
+*.onnx
+*.aab

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+        Allow cleartext HTTP globally. Required because Android's domain-config
+        doesn't reliably match raw IP addresses (only hostnames).
+        All Dispatch traffic goes over Tailscale VPN anyway.
+    -->
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

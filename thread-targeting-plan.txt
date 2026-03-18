@@ -1,0 +1,13 @@
+Here's the session targeting plan. Sending it in parts so you can listen through it. Part 1: The problem. Right now cmail invoke uses dash dash continue, which resumes the most recent conversation in a directory. If engineering gets invoked from two different threads, both hit the same conversation. Thread context bleeds. You lose conversation isolation.
+
+Part 2: The solution. Claude CLI has a dash dash resume flag that takes a session ID and resumes that exact conversation. It also has dash dash session dash ID that lets you pre-assign a UUID to a new session. So for the first message in a thread, we create a session with a known ID. For follow-up messages, we resume that same session.
+
+Part 3: The mapping. We need to link thread IDs to session IDs. New column thread underscore ID on the sessions table. File Bridge gets a lookup endpoint. When you send a message from thread X to department Y, File Bridge checks: does thread X already have a session for department Y? If yes, return that session ID.
+
+Part 4: The flow. First message in a thread: cmail generates a UUID, passes it as dash dash session dash ID to claude CLI, stores the mapping thread X equals session UUID in the sessions DB. Agent starts a brand new conversation with that ID. Second message in same thread: cmail looks up thread X, finds the session UUID, uses dash dash resume UUID instead of dash dash continue.
+
+Part 5: What changes. One, sessions DB gets a thread underscore ID column. Two, File Bridge gets a thread to session lookup and store endpoint. Three, cmail core dot py invoke function swaps dash dash continue for dash dash resume or dash dash session dash ID depending on whether a mapping exists. Four, the session pipeline tags new sessions with thread ID from the DISPATCH_THREAD_ID env var we already set.
+
+Part 6: Edge cases. If a session fills its context window and gets compacted, the session ID stays the same so resume still works. If a session truly dies and can't resume, cmail detects the failure and falls back to creating a new session. No thread means no mapping, falls back to dash dash continue which is current behavior. Each department gets its own session per thread, so engineering and research can be in the same thread with separate conversations.
+
+Part 7: The payoff. You get true conversation continuity. Each thread in Dispatch becomes a persistent chat with an agent. No more context bleeding between threads. And combined with context visibility, you'll know exactly how much runway each conversation has left. That's the full plan. We'll come back to it after I finish context visibility.

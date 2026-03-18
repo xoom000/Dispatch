@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Dispatch</string>
+    <string name="accessibility_service_description">Allows Digital Gnosis agents to perform phone actions like making calls and sending texts through remote commands. Enable this to let Dispatch act on your behalf when agents need to reach you.</string>
+</resources>

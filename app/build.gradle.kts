@@ -1,0 +1,147 @@
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.hilt.android)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.kotlin.serialization)
+    // Build will fail until google-services.json is placed in app/.
+    // Get it from Firebase Console > Project Settings > Add Android App > download google-services.json
+    alias(libs.plugins.google.services)
+}
+
+android {
+    namespace = "dev.digitalgnosis.dispatch"
+    compileSdk = 36
+
+    defaultConfig {
+        applicationId = "dev.digitalgnosis.dispatch"
+        minSdk = 26
+        targetSdk = 34
+        versionCode = 2
+        versionName = "1.0.2"
+    }
+
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("${System.getProperty("user.home")}/.android/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
+            enableV4Signing = true
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("debug")
+        }
+        release {
+            isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    kotlinOptions {
+        jvmTarget = "11"
+    }
+
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+}
+
+// Automatic 'Self-Update' Staging
+// Copies the fresh APK to the File Bridge public directory after every debug build.
+tasks.register<Copy>("stageUpdate") {
+    from("build/outputs/apk/debug/app-debug.apk")
+    into("/home/xoom000/.dispatch/files")
+    rename { "dispatch-latest.apk" }
+}
+
+afterEvaluate {
+    tasks.findByName("assembleDebug")?.finalizedBy("stageUpdate")
+}
+
+dependencies {
+    implementation("com.google.code.gson:gson:2.11.0")  // GitHub API JSON parsing for self-update
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.activity.compose)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.material.icons.extended)
+    debugImplementation(libs.androidx.ui.tooling)
+
+    implementation(libs.hilt.android)
+    implementation(libs.androidx.hilt.navigation.compose)
+    ksp(libs.hilt.compiler)
+
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging.ktx)
+    // crashlytics + analytics removed — not in version catalog
+
+    implementation(libs.timber)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.sse)
+    implementation(libs.lifecycle.process)
+    implementation(libs.androidx.media)
+
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.kotlinx.serialization)
+    implementation(libs.kotlinx.serialization.json)
+
+    debugImplementation(libs.chucker.library)
+    releaseImplementation(libs.chucker.library.no.op)
+    debugImplementation(libs.leakcanary.android)
+
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
+
+    // Priority 1 — Security: encrypted token storage
+    implementation(libs.security.crypto.ktx)
+
+    // Priority 2 — Reliability: guaranteed sync + Hilt worker support
+    implementation(libs.work.runtime.ktx)
+    implementation(libs.hilt.work)
+
+    // Priority 3 — Modernization: type-safe nav + async preferences
+    implementation(libs.navigation.compose)
+    implementation(libs.datastore.preferences)
+
+    // Priority 4 — Capabilities: image loading + adaptive responsive UI
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+    implementation(libs.adaptive)
+    implementation(libs.adaptive.layout)
+    implementation(libs.adaptive.navigation)
+
+    // Priority 5 — Performance: AOT compilation of hot paths
+    implementation(libs.profileinstaller)
+
+    // Sherpa-ONNX — on-device neural TTS (Kokoro voices)
+    implementation(files("libs/sherpa-onnx-1.12.28.aar"))
+
+    // ── Test dependencies ──
+    testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
+    testImplementation(libs.arch.core.testing)
+}

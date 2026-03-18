@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="cyan_primary">#00E5FF</color>
+    <color name="surface_dark">#121212</color>
+    <color name="on_surface">#E0E0E0</color>
+    <color name="surface_variant">#1E1E1E</color>
+</resources>
