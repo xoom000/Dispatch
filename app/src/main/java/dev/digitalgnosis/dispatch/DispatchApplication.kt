@@ -7,7 +7,6 @@ import dev.digitalgnosis.dispatch.config.TokenManager
 import dev.digitalgnosis.dispatch.logging.BigNickTimberTree
 import dev.digitalgnosis.dispatch.logging.FileLogTree
 import dev.digitalgnosis.dispatch.logging.InMemoryLogTree
-import dev.digitalgnosis.dispatch.network.EventStreamClient
 import dev.digitalgnosis.dispatch.network.SseConnectionService
 import dev.digitalgnosis.dispatch.tts.ModelManager
 import timber.log.Timber
@@ -18,7 +17,6 @@ class DispatchApplication : Application() {
 
     @Inject lateinit var tokenManager: TokenManager
     @Inject lateinit var modelManager: ModelManager
-    @Inject lateinit var eventStreamClient: EventStreamClient
 
     override fun onCreate() {
         super.onCreate()
@@ -54,12 +52,8 @@ class DispatchApplication : Application() {
             Timber.e(e, "SseConnectionService start failed")
         }
 
-        try {
-            eventStreamClient.start()
-            Timber.i("EventStreamClient started")
-        } catch (e: Throwable) {
-            Timber.e(e, "EventStreamClient start failed")
-        }
+        // EventStreamClient removed — SseConnectionService is the sole SSE owner.
+        // It handles all event types with exponential backoff reconnection.
     }
 
     private fun retrieveFcmToken() {

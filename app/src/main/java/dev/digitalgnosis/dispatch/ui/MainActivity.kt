@@ -33,7 +33,7 @@ import dev.digitalgnosis.dispatch.config.TailscaleConfig
 import dagger.hilt.android.AndroidEntryPoint
 import dev.digitalgnosis.dispatch.config.TokenManager
 import dev.digitalgnosis.dispatch.network.AudioStreamClient
-import dev.digitalgnosis.dispatch.network.EventStreamClient
+import dev.digitalgnosis.dispatch.network.SseConnectionService
 import dev.digitalgnosis.dispatch.tts.ModelManager
 import dev.digitalgnosis.dispatch.tts.TtsEngine
 import dev.digitalgnosis.dispatch.ui.navigation.BottomNavBar
@@ -53,7 +53,6 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var ttsEngine: TtsEngine
     @Inject lateinit var modelManager: ModelManager
     @Inject lateinit var audioStreamClient: AudioStreamClient
-    @Inject lateinit var eventStreamClient: EventStreamClient
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -80,7 +79,6 @@ class MainActivity : ComponentActivity() {
                         modelManager = modelManager,
                         ttsEngine = ttsEngine,
                         audioStreamClient = audioStreamClient,
-                        eventStreamClient = eventStreamClient,
                     )
                 }
             }
@@ -126,12 +124,11 @@ fun DispatchApp(
     modelManager: ModelManager,
     ttsEngine: TtsEngine,
     audioStreamClient: AudioStreamClient,
-    eventStreamClient: EventStreamClient,
 ) {
     val context = LocalContext.current
     val dims = LocalDisplayDimensions.current
-    val eventRefreshSignal by eventStreamClient.eventFeedRefresh.collectAsState()
-    val whiteboardRefresh by eventStreamClient.whiteboardRefresh.collectAsState()
+    val eventRefreshSignal by SseConnectionService.eventFeedRefresh.collectAsState()
+    val whiteboardRefresh by SseConnectionService.whiteboardRefresh.collectAsState()
     var showLogViewer by rememberSaveable { mutableStateOf(false) }
 
     // Self-update system — checks GitHub releases on launch

@@ -6,8 +6,8 @@ import dagger.hilt.components.SingletonComponent
 import dev.digitalgnosis.dispatch.config.TokenManager
 import dev.digitalgnosis.dispatch.data.CmailRepository
 import dev.digitalgnosis.dispatch.data.MessageRepository
+import dev.digitalgnosis.dispatch.audio.PlaybackStateHolder
 import dev.digitalgnosis.dispatch.network.AudioStreamClient
-import dev.digitalgnosis.dispatch.network.EventStreamClient
 import dev.digitalgnosis.dispatch.network.FileTransferClient
 import dev.digitalgnosis.dispatch.tts.ModelManager
 import dev.digitalgnosis.dispatch.tts.TtsEngine
@@ -21,6 +21,6 @@ interface FcmEntryPoint {
     fun tokenManager(): TokenManager
     fun modelManager(): ModelManager
     fun audioStreamClient(): AudioStreamClient
-    fun eventStreamClient(): EventStreamClient
     fun fileTransferClient(): FileTransferClient
+    fun playbackStateHolder(): PlaybackStateHolder
 }
