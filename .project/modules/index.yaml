@@ -1,0 +1,94 @@
+modules:
+  media3:
+    status: built
+    path: media3/samples
+    tags: [exoplayer, streaming, datasource, extractors, audio]
+    version: 1.9.2
+
+  hilt:
+    status: empty
+    path: hilt/samples
+    tags: [di, entrypoints, modules, viewmodel]
+    version: 2.57.1
+
+  compose:
+    status: empty
+    path: compose/samples
+    tags: [ui, material3, state, theming, layout]
+    version: "2026.01.01"
+
+  okhttp:
+    status: empty
+    path: okhttp/samples
+    tags: [http, sse, interceptors, websocket]
+    version: 4.12.0
+
+  room:
+    status: empty
+    path: room/samples
+    tags: [database, dao, migrations, typeconverters]
+    version: 2.8.4
+
+  fcm:
+    status: empty
+    path: fcm/samples
+    tags: [push, notifications, firebase, messaging]
+    version: 33.7.0
+
+  coroutines:
+    status: empty
+    path: coroutines/samples
+    tags: [flows, scopes, dispatchers, concurrency, channels]
+    version: 1.8.1
+
+  foreground-services:
+    status: empty
+    path: foreground-services/samples
+    tags: [notifications, service-lifecycle, android15, mediasession]
+
+  kotlinx-serialization:
+    status: empty
+    path: kotlinx-serialization/samples
+    tags: [json, encoding, decoding, custom-serializers]
+    version: 1.6.3
+
+  workmanager:
+    status: empty
+    path: workmanager/samples
+    tags: [background, constraints, periodic, chained]
+    version: 2.9.1
+
+  navigation:
+    status: empty
+    path: navigation/samples
+    tags: [routes, arguments, deeplinks, compose-nav]
+    version: 2.8.4
+
+  datastore:
+    status: empty
+    path: datastore/samples
+    tags: [preferences, proto, migration]
+    version: 1.1.1
+
+  coil:
+    status: empty
+    path: coil/samples
+    tags: [images, compose, caching, okhttp]
+    version: 3.0.4
+
+  retrofit:
+    status: empty
+    path: retrofit/samples
+    tags: [rest, converters, interceptors]
+    version: 2.11.0
+
+  accessibility:
+    status: empty
+    path: accessibility/samples
+    tags: [a11y, node-traversal, events, service]
+
+  security-crypto:
+    status: empty
+    path: security-crypto/samples
+    tags: [encryption, keystore, sharedprefs]
+    version: 1.1.0-alpha06
