@@ -8,6 +8,7 @@ import dev.digitalgnosis.dispatch.logging.BigNickTimberTree
 import dev.digitalgnosis.dispatch.logging.FileLogTree
 import dev.digitalgnosis.dispatch.logging.InMemoryLogTree
 import dev.digitalgnosis.dispatch.network.EventStreamClient
+import dev.digitalgnosis.dispatch.network.SseConnectionService
 import dev.digitalgnosis.dispatch.tts.ModelManager
 import timber.log.Timber
 import javax.inject.Inject
@@ -44,6 +45,13 @@ class DispatchApplication : Application() {
             Timber.i("ModelManager initialization triggered")
         } catch (e: Throwable) {
             Timber.e(e, "ModelManager initialization failed")
+        }
+
+        try {
+            SseConnectionService.start(this)
+            Timber.i("SseConnectionService started")
+        } catch (e: Throwable) {
+            Timber.e(e, "SseConnectionService start failed")
         }
 
         try {

@@ -19,9 +19,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import dev.digitalgnosis.dispatch.data.ThreadInfo
+import dev.digitalgnosis.dispatch.data.SessionInfo
 import dev.digitalgnosis.dispatch.ui.components.AgentAvatar
 import dev.digitalgnosis.dispatch.ui.viewmodels.ChatViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,21 +34,19 @@ fun ChatScreen(
     viewModel: ChatViewModel = hiltViewModel(),
     onComposeNew: () -> Unit,
 ) {
-    val threads by viewModel.threads.collectAsState()
+    val sessions by viewModel.sessions.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
-    val selectedThread by viewModel.selectedThread.collectAsState()
+    val selectedSession by viewModel.selectedSession.collectAsState()
 
-    if (selectedThread != null) {
+    if (selectedSession != null) {
         MessagesScreen(
-            threadId = selectedThread!!.threadId,
-            department = selectedThread!!.participants.firstOrNull() ?: "Unknown",
-            onBack = { viewModel.selectThread(null) }
+            threadId = selectedSession!!.sessionId,
+            department = selectedSession!!.department,
+            onBack = { viewModel.selectSession(null) }
         )
     } else {
-        // FLAT LAYOUT: No Scaffold here, inherited from MainActivity
         Box(modifier = modifier.fillMaxSize()) {
             Column {
-                // Inline Header instead of TopAppBar to avoid nesting issues
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -74,33 +76,43 @@ fun ChatScreen(
                 }
 
                 LazyColumn(modifier = Modifier.weight(1f)) {
-                    items(threads) { thread ->
-                        ConversationRow(thread) { viewModel.selectThread(thread) }
+                    items(sessions) { session ->
+                        SessionRow(session) { viewModel.selectSession(session) }
                     }
                     item { Spacer(modifier = Modifier.height(80.dp)) }
                 }
             }
 
-            // FAB inside the Box so it stays responsive
-            ExtendedFloatingActionButton(
+            FloatingActionButton(
                 onClick = onComposeNew,
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                shape = RoundedCornerShape(16.dp),
-                icon = { Icon(Icons.Default.AddComment, contentDescription = null) },
-                text = { Text("Start chat") },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(16.dp)
-            )
+                    .padding(end = 16.dp, bottom = 16.dp),
+                shape = RoundedCornerShape(16.dp),
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.AddComment, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Start chat")
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun ConversationRow(thread: ThreadInfo, onClick: () -> Unit) {
-    val displayName = thread.participants.firstOrNull() ?: "Unknown"
-    
+private fun SessionRow(session: SessionInfo, onClick: () -> Unit) {
+    val label = session.alias.ifBlank { null }
+        ?: session.department
+    val preview = session.summary
+        ?: "Session ${session.sessionId.take(8)}"
+    val time = formatTimestamp(session.lastActivity)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -108,63 +120,46 @@ private fun ConversationRow(thread: ThreadInfo, onClick: () -> Unit) {
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AgentAvatar(name = displayName, size = 56.dp)
-        
+        AgentAvatar(name = session.department, size = 48.dp)
+
         Spacer(modifier = Modifier.width(16.dp))
-        
+
         Column(modifier = Modifier.weight(1f)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = displayName,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 17.sp
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-                Text(
-                    text = formatTimestamp(thread.lastActivity),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = thread.lastMessagePreview ?: "No messages",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = preview,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Text(
+            text = time,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
 private fun formatTimestamp(iso: String): String {
     return try {
-        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
-        sdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
-        val date = sdf.parse(iso) ?: return ""
-        val now = System.currentTimeMillis()
-        val diff = now - date.time
-        
-        when {
-            diff < 60 * 60 * 1000 -> "${diff / (60 * 1000)} min"
-            diff < 24 * 60 * 60 * 1000 -> java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(date)
-            diff < 7 * 24 * 60 * 60 * 1000 -> java.text.SimpleDateFormat("EEE", java.util.Locale.US).format(date)
-            else -> java.text.SimpleDateFormat("MMM d", java.util.Locale.US).format(date)
+        val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
         }
-    } catch (_: Exception) { "" }
+        val date = parser.parse(iso.take(19)) ?: return ""
+        val formatter = SimpleDateFormat("HH:mm", Locale.US)
+        formatter.format(date)
+    } catch (e: Exception) {
+        ""
+    }
 }

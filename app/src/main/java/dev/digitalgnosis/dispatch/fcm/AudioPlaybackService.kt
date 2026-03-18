@@ -112,7 +112,7 @@ class AudioPlaybackService : Service() {
             // Don't stopSelf — service stays alive for MediaSession
             // Still need foreground though, so post idle notification
             startForeground(FOREGROUND_NOTIFICATION_ID, buildIdleNotification())
-            return START_NOT_STICKY
+            return START_STICKY
         }
 
         val count = pendingCount.incrementAndGet()
@@ -165,7 +165,7 @@ class AudioPlaybackService : Service() {
             }
         )
 
-        return START_NOT_STICKY
+        return START_STICKY
     }
 
     override fun onDestroy() {
