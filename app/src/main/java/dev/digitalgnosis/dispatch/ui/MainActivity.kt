@@ -26,6 +26,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.digitalgnosis.dispatch.config.TailscaleConfig
 import dagger.hilt.android.AndroidEntryPoint
 import dev.digitalgnosis.dispatch.config.TokenManager
@@ -39,6 +42,8 @@ import dev.digitalgnosis.dispatch.ui.screens.*
 import dev.digitalgnosis.dispatch.ui.theme.DispatchTheme
 import dev.digitalgnosis.dispatch.ui.theme.DisplayDimensions
 import dev.digitalgnosis.dispatch.ui.theme.LocalDisplayDimensions
+import dev.digitalgnosis.dispatch.update.UpdateBanner
+import dev.digitalgnosis.dispatch.update.UpdateStateManager
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -129,6 +134,16 @@ fun DispatchApp(
     val whiteboardRefresh by eventStreamClient.whiteboardRefresh.collectAsState()
     var showLogViewer by rememberSaveable { mutableStateOf(false) }
 
+    // Self-update system — checks GitHub releases on launch
+    val updateManager = viewModel<UpdateStateManager>(
+        factory = object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return UpdateStateManager(context.applicationContext) as T
+            }
+        }
+    )
+
     val sendDraft = remember { SendDraft() }
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var showCompose by rememberSaveable { mutableStateOf(false) }
@@ -198,26 +213,30 @@ fun DispatchApp(
             )
         },
     ) { padding ->
-        // No nested padding here -- pass it to the screens
-        val modifier = Modifier.padding(padding)
+        Column(modifier = Modifier.padding(padding)) {
+            // Self-update banner — shown when a newer version is on GitHub
+            UpdateBanner(updateManager)
 
-        when (selectedTab) {
-            DispatchTab.CHAT -> ChatScreen(
-                modifier = modifier,
-                onComposeNew = { showCompose = true },
-            )
-            DispatchTab.PULSE -> PulseScreen(
-                modifier = modifier,
-                refreshSignal = eventRefreshSignal,
-            )
-            DispatchTab.BOARD -> BoardScreen(
-                modifier = modifier,
-                whiteboardRefresh = whiteboardRefresh,
-                onNavigateToThread = { currentTab = DispatchTab.CHAT.name },
-            )
-            DispatchTab.GEMINI -> GeminiWorkspaceScreen(
-                modifier = modifier,
-            )
+            val screenModifier = Modifier.fillMaxSize()
+
+            when (selectedTab) {
+                DispatchTab.CHAT -> ChatScreen(
+                    modifier = screenModifier,
+                    onComposeNew = { showCompose = true },
+                )
+                DispatchTab.PULSE -> PulseScreen(
+                    modifier = screenModifier,
+                    refreshSignal = eventRefreshSignal,
+                )
+                DispatchTab.BOARD -> BoardScreen(
+                    modifier = screenModifier,
+                    whiteboardRefresh = whiteboardRefresh,
+                    onNavigateToThread = { currentTab = DispatchTab.CHAT.name },
+                )
+                DispatchTab.GEMINI -> GeminiWorkspaceScreen(
+                    modifier = screenModifier,
+                )
+            }
         }
     }
 }
