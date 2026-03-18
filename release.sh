@@ -60,7 +60,7 @@ echo "✅ APK built"
 
 # Step 5: Push to GitHub
 echo "📤 Pushing to GitHub..."
-git push --quiet
+git push origin HEAD:main --quiet
 
 # Step 6: Create GitHub release
 echo "📤 Creating GitHub release..."
