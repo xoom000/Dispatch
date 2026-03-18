@@ -15,11 +15,16 @@ object TailscaleConfig {
     const val ROUTE33_SERVER = "http://$DG_CORE_IP:8085"
 
     /**
-     * Kokoro TTS GPU server — single WAV endpoint.
+     * Kokoro TTS — routed through File Bridge proxy.
      * Returns one complete WAV file (44-byte header + PCM data).
-     * Docker container on 0.0.0.0:8300, socat bridges 8400 on Tailscale IP.
+     * File Bridge proxies to the Kokoro GPU server on OASIS.
      */
-    const val TTS_SERVER = "http://$OASIS_IP:8400/api/tts"
+    const val TTS_SERVER = "http://$POP_OS_IP:8600/api/tts"
+
+    /**
+     * Kokoro TTS streaming endpoint — chunked transfer via File Bridge.
+     */
+    const val TTS_STREAM_SERVER = "http://$POP_OS_IP:8600/api/tts/stream"
 
     /**
      * File Bridge server on pop-os.
