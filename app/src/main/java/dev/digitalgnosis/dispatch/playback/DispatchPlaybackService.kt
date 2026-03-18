@@ -13,6 +13,7 @@ import androidx.media3.common.C
 import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
@@ -115,7 +116,7 @@ class DispatchPlaybackService : MediaSessionService() {
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setContentType(C.AUDIO_CONTENT_TYPE_SPEECH)
-                    .setUsage(C.USAGE_ASSISTANT)
+                    .setUsage(C.USAGE_MEDIA)
                     .build(),
                 /* handleAudioFocus= */ true
             )
@@ -307,11 +308,14 @@ class DispatchPlaybackService : MediaSessionService() {
             )
             .build()
 
-        p.addMediaItem(mediaItem)
-
         if (p.playbackState == Player.STATE_IDLE || p.playbackState == Player.STATE_ENDED) {
+            // Clear stale items from previous playback, then start fresh
+            p.clearMediaItems()
+            p.addMediaItem(mediaItem)
             p.prepare()
             p.play()
+        } else {
+            p.addMediaItem(mediaItem)
         }
 
         val queueMs = if (fcmReceiveTime > 0) System.currentTimeMillis() - fcmReceiveTime else -1L
@@ -351,13 +355,15 @@ class DispatchPlaybackService : MediaSessionService() {
         override fun onPlaybackStateChanged(playbackState: Int) {
             when (playbackState) {
                 Player.STATE_ENDED -> {
-                    Timber.i("DispatchPlaybackService: playback ended (queue empty)")
-                    val remaining = pendingCount.get()
+                    // Decrement for the final item — onMediaItemTransition only fires BETWEEN items
+                    val remaining = pendingCount.decrementAndGet().coerceAtLeast(0)
+                    Timber.i("DispatchPlaybackService: playback ended (queue empty), pending=%d", remaining)
                     if (remaining <= 0) {
                         this@DispatchPlaybackService.playbackState.onQueueEmpty()
                     }
                     flushLogs()
-                    cleanTempFiles()
+                    // Temp file cleanup deferred to queueMediaItem (when next message arrives)
+                    // or onDestroy. Cleaning here nukes files ExoPlayer's playlist still references.
                 }
                 Player.STATE_READY -> {
                     Timber.d("DispatchPlaybackService: player ready")
@@ -366,6 +372,20 @@ class DispatchPlaybackService : MediaSessionService() {
                     Timber.d("DispatchPlaybackService: player buffering")
                 }
                 else -> {}
+            }
+        }
+
+        override fun onPlayerError(error: PlaybackException) {
+            Timber.e(error, "DispatchPlaybackService: ExoPlayer error — %s", error.message)
+            val p = player ?: return
+            if (p.hasNextMediaItem()) {
+                Timber.i("DispatchPlaybackService: skipping failed item, trying next")
+                p.seekToNextMediaItem()
+                p.prepare()
+                p.play()
+            } else {
+                pendingCount.set(0)
+                this@DispatchPlaybackService.playbackState.onQueueEmpty()
             }
         }
 
