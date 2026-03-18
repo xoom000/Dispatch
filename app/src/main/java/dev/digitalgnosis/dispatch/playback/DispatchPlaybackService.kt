@@ -402,15 +402,28 @@ class DispatchPlaybackService : MediaSessionService() {
      * ExoPlayer starts playback as soon as it has the WAV header + first PCM chunk.
      */
     @OptIn(UnstableApi::class)
+    /**
+     * Custom DataSource that POSTs to Kokoro's streaming TTS endpoint.
+     *
+     * Implements the FULL BaseDataSource contract verified from OkHttpDataSource:
+     *   open()  -> transferInitializing() -> transferStarted() -> return LENGTH_UNSET
+     *   read()  -> bytesTransferred() after each read -> RESULT_END_OF_INPUT on EOF
+     *   close() -> transferEnded()
+     *
+     * Reference: .project/modules/media3/samples/datasource-contract.md
+     */
     private inner class TtsStreamDataSource : BaseDataSource(/* isNetwork= */ true) {
 
         private var response: okhttp3.Response? = null
         private var inputStream: InputStream? = null
+        private var dataSpec: DataSpec? = null
         private var traceId: String? = null
         private var totalBytesRead = 0L
-        private var endOfStreamReached = false
+        private var opened = false
 
         override fun open(dataSpec: DataSpec): Long {
+            this.dataSpec = dataSpec
+
             val streamId = dataSpec.uri.lastPathSegment
                 ?: throw IOException("Missing stream ID in URI: ${dataSpec.uri}")
 
@@ -418,6 +431,9 @@ class DispatchPlaybackService : MediaSessionService() {
                 ?: throw IOException("Unknown stream ID: $streamId")
 
             traceId = req.traceId
+
+            // REQUIRED: signal transfer initializing BEFORE any I/O
+            transferInitializing(dataSpec)
 
             val payload = JSONObject().apply {
                 put("text", req.text)
@@ -431,8 +447,7 @@ class DispatchPlaybackService : MediaSessionService() {
 
             req.traceId?.let { requestBuilder.header("X-Trace-Id", it) }
 
-            Timber.i("[trace:%s] TtsStreamDataSource: opening POST to Kokoro",
-                traceId ?: "none")
+            Timber.i("[trace:%s] TtsStreamDataSource: POST to Kokoro", traceId ?: "none")
 
             response = streamingClient.newCall(requestBuilder.build()).execute()
 
@@ -445,18 +460,18 @@ class DispatchPlaybackService : MediaSessionService() {
             inputStream = response!!.body?.byteStream()
                 ?: throw IOException("Kokoro stream returned empty body")
 
-            val connectMs = System.currentTimeMillis() - req.startTime
-            Timber.i("[trace:%s] TtsStreamDataSource: connected in %dms",
-                traceId ?: "none", connectMs)
+            opened = true
 
-            // Return LENGTH_UNSET — WavExtractor uses this to know content length is unknown.
-            // The WAV header inside the stream has a placeholder size but the extractor
-            // WILL honor END_OF_INPUT from read() when the stream closes.
+            // REQUIRED: signal transfer started AFTER successful open
+            transferStarted(dataSpec)
+
+            val connectMs = System.currentTimeMillis() - req.startTime
+            Timber.i("[trace:%s] TtsStreamDataSource: connected in %dms", traceId ?: "none", connectMs)
+
             return C.LENGTH_UNSET.toLong()
         }
 
         override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
-            if (endOfStreamReached) return C.RESULT_END_OF_INPUT
             if (length == 0) return 0
 
             val stream = inputStream ?: return C.RESULT_END_OF_INPUT
@@ -464,36 +479,39 @@ class DispatchPlaybackService : MediaSessionService() {
             val bytesRead = try {
                 stream.read(buffer, offset, length)
             } catch (e: IOException) {
-                Timber.w("[trace:%s] TtsStreamDataSource: read IOException after %d bytes: %s",
+                Timber.w("[trace:%s] TtsStreamDataSource: IOException after %d bytes: %s",
                     traceId ?: "none", totalBytesRead, e.message)
-                endOfStreamReached = true
                 return C.RESULT_END_OF_INPUT
             }
 
             if (bytesRead == -1) {
-                endOfStreamReached = true
-                Timber.i("[trace:%s] TtsStreamDataSource: END OF STREAM after %d bytes",
+                Timber.i("[trace:%s] TtsStreamDataSource: END_OF_INPUT after %d bytes",
                     traceId ?: "none", totalBytesRead)
                 return C.RESULT_END_OF_INPUT
             }
 
             totalBytesRead += bytesRead
 
-            // Call transferBytesRead per BaseDataSource contract
+            // REQUIRED: notify transfer listeners after every successful read
             bytesTransferred(bytesRead)
 
             return bytesRead
         }
 
-        override fun getUri(): Uri? = Uri.parse("tts://stream")
+        override fun getUri(): Uri? = dataSpec?.uri
 
         override fun close() {
-            Timber.i("[trace:%s] TtsStreamDataSource: close() — %d bytes total, eof=%s",
-                traceId ?: "none", totalBytesRead, endOfStreamReached)
+            Timber.i("[trace:%s] TtsStreamDataSource: close() — %d bytes total",
+                traceId ?: "none", totalBytesRead)
             try { inputStream?.close() } catch (_: Exception) {}
             try { response?.close() } catch (_: Exception) {}
             inputStream = null
             response = null
+            if (opened) {
+                opened = false
+                // REQUIRED: signal transfer ended in close
+                transferEnded()
+            }
         }
     }
 
