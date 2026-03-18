@@ -321,6 +321,10 @@ class AudioStreamClient @Inject constructor(
             if (skipRequested) {
                 Timber.i("AudioStreamClient: playback SKIPPED at offset %d/%d", offset, pcmData.size)
             } else {
+                // Wait for AudioTrack internal buffer to finish playing through the speaker.
+                // Without this, stop() cuts off the last ~100-300ms of audio.
+                val totalFrames = pcmData.size / 2  // 16-bit = 2 bytes per frame
+                waitForDrain(audioTrack, totalFrames)
                 Timber.i("AudioStreamClient: playback complete")
             }
 
@@ -402,6 +406,27 @@ class AudioStreamClient @Inject constructor(
         synchronized(pauseLock) {
             pauseLock.notifyAll()
         }
+    }
+
+    /**
+     * Wait for AudioTrack to finish playing all buffered frames.
+     * Polls playbackHeadPosition until it reaches totalFrames or timeout.
+     * Without this, audioTrack.stop() cuts off audio still in the buffer.
+     */
+    private fun waitForDrain(audioTrack: AudioTrack, totalFrames: Int) {
+        val deadline = System.currentTimeMillis() + DRAIN_TIMEOUT_MS
+        while (System.currentTimeMillis() < deadline) {
+            val head = audioTrack.playbackHeadPosition
+            if (head >= totalFrames) {
+                Timber.d("AudioStreamClient: drain complete at frame %d/%d", head, totalFrames)
+                return
+            }
+            try {
+                Thread.sleep(DRAIN_POLL_MS)
+            } catch (_: InterruptedException) { }
+        }
+        Timber.d("AudioStreamClient: drain timeout, head=%d/%d",
+            audioTrack.playbackHeadPosition, totalFrames)
     }
 
     private fun createAudioTrack(): AudioTrack {
@@ -499,5 +524,7 @@ class AudioStreamClient @Inject constructor(
         private const val MAX_RETRIES = 2            // 1 retry after initial failure
         private const val RETRY_DELAY_MS = 2_000L    // 2s pause for Tailscale tunnel warmup
         private const val PLAYBACK_CHUNK_SIZE = 4800 // ~100ms of audio at 24kHz 16-bit mono (skip responsiveness)
+        private const val DRAIN_TIMEOUT_MS = 3_000L  // Max time to wait for AudioTrack buffer drain
+        private const val DRAIN_POLL_MS = 50L        // Poll interval during drain wait
     }
 }
