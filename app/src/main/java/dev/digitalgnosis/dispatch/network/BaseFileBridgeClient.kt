@@ -33,6 +33,16 @@ class BaseFileBridgeClient @Inject constructor(
         .build()
 
     /**
+     * Streaming client — no read timeout for SSE and long-running streams.
+     * Used by SessionsApiClient and streaming chat endpoints.
+     */
+    private val streamingClient = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(0, TimeUnit.SECONDS)   // SSE: no read timeout
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .build()
+
+    /**
      * Build a full URL for a File Bridge endpoint.
      */
     fun buildUrl(path: String): String {
@@ -105,4 +115,9 @@ class BaseFileBridgeClient @Inject constructor(
      * Access to the raw OkHttpClient for specialized needs (like large file streams).
      */
     fun getRawClient(): OkHttpClient = client
+
+    /**
+     * Access to the streaming OkHttpClient (no read timeout) for SSE subscriptions.
+     */
+    fun getStreamingClient(): OkHttpClient = streamingClient
 }

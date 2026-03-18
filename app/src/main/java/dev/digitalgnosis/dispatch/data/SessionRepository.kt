@@ -1,6 +1,16 @@
 package dev.digitalgnosis.dispatch.data
 
 import dev.digitalgnosis.dispatch.network.BaseFileBridgeClient
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import okhttp3.sse.EventSource
+import okhttp3.sse.EventSourceListener
+import okhttp3.sse.EventSources
 import org.json.JSONObject
 import timber.log.Timber
 import javax.inject.Inject
@@ -248,6 +258,104 @@ class SessionRepository @Inject constructor(
             }
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    /**
+     * Stream a chat message via File Bridge SSE.
+     * Returns a Flow of StreamEvent for real-time streaming UI.
+     * Used as fallback when Anthropic Sessions API is not configured.
+     */
+    fun streamChat(
+        message: String,
+        department: String? = null,
+        model: String? = null,
+    ): Flow<StreamEvent> = callbackFlow {
+        val payload = JSONObject().apply {
+            put("message", message)
+            if (department != null) put("department", department)
+            if (model != null) put("model", model)
+        }
+
+        val url = client.buildUrl("chat/stream")
+        val body = payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+        val request = Request.Builder().url(url).post(body).build()
+
+        val factory = EventSources.createFactory(client.getStreamingClient())
+        val eventSource = factory.newEventSource(request, object : EventSourceListener() {
+            override fun onOpen(eventSource: EventSource, response: Response) {
+                Timber.i("StreamChat: SSE connected (status=%d)", response.code)
+            }
+
+            override fun onEvent(
+                eventSource: EventSource,
+                id: String?,
+                type: String?,
+                data: String,
+            ) {
+                try {
+                    val json = JSONObject(data)
+                    val eventType = type ?: json.optString("type", "")
+
+                    val event: StreamEvent? = when (eventType) {
+                        "token", "content_block_delta" -> {
+                            val text = json.optString("text", "")
+                                .ifBlank { json.optJSONObject("delta")?.optString("text", "") ?: "" }
+                            if (text.isNotEmpty()) StreamEvent.Token(text) else null
+                        }
+                        "thinking" -> StreamEvent.Thinking(json.optString("thinking", ""))
+                        "tool_use", "tool" -> StreamEvent.Tool(
+                            name = json.optString("name", json.optString("tool_name", "")),
+                            status = json.optString("status", "started"),
+                        )
+                        "assistant" -> {
+                            val text = json.optString("text", "")
+                            if (text.isNotBlank()) StreamEvent.AssistantText(text) else null
+                        }
+                        "done", "result" -> StreamEvent.Done(
+                            result = json.optString("result", ""),
+                            costUsd = json.optDouble("total_cost_usd", 0.0),
+                            durationMs = json.optLong("duration_ms", 0),
+                            sessionId = json.optString("session_id", ""),
+                            stopReason = json.optString("stop_reason", ""),
+                        )
+                        "error" -> StreamEvent.Error(
+                            errorType = json.optString("error_type", "stream_error"),
+                            result = json.optString("message", json.optString("result", "")),
+                        )
+                        "status" -> StreamEvent.Status(
+                            status = json.optString("status", ""),
+                            model = json.optString("model", ""),
+                            sessionId = json.optString("session_id", ""),
+                        )
+                        else -> null
+                    }
+
+                    if (event != null) trySend(event)
+                } catch (e: Exception) {
+                    Timber.w(e, "StreamChat: failed to parse event type=%s", type)
+                }
+            }
+
+            override fun onClosed(eventSource: EventSource) {
+                Timber.i("StreamChat: SSE closed")
+                channel.close()
+            }
+
+            override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {
+                val code = response?.code ?: -1
+                Timber.e(t, "StreamChat: SSE failed (code=%d)", code)
+                trySend(StreamEvent.Error(
+                    "connection_error",
+                    t?.message ?: "SSE connection failed (code=$code)"
+                ))
+                channel.close()
+            }
+        })
+
+        awaitClose {
+            Timber.i("StreamChat: Flow cancelled, closing SSE")
+            eventSource.cancel()
         }
     }
 

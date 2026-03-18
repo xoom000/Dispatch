@@ -2,10 +2,13 @@ package dev.digitalgnosis.dispatch.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dev.digitalgnosis.dispatch.config.AnthropicAuthManager
 import dev.digitalgnosis.dispatch.data.ChatBubble
 import dev.digitalgnosis.dispatch.data.ChatBubbleRepository
 import dev.digitalgnosis.dispatch.data.SessionRepository
+import dev.digitalgnosis.dispatch.data.StreamEvent
 import dev.digitalgnosis.dispatch.network.AudioStreamClient
+import dev.digitalgnosis.dispatch.network.SessionsApiClient
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -26,6 +29,10 @@ import javax.inject.Inject
  * NO POLLING. Updates arrive via SSE push → Room write → Flow emission.
  * Initial load and scroll-up use one-shot HTTP fetches that write to Room.
  * The Flow handles all UI updates automatically.
+ *
+ * Streaming: When Anthropic Sessions API is configured, sendStreaming() creates
+ * a bridge session and streams the response token-by-token. Falls back to
+ * File Bridge SSE relay if Sessions API is not available.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -33,6 +40,8 @@ class MessagesViewModel @Inject constructor(
     private val chatBubbleRepository: ChatBubbleRepository,
     private val sessionRepository: SessionRepository,
     private val audioStreamClient: AudioStreamClient,
+    private val sessionsApiClient: SessionsApiClient,
+    private val authManager: AnthropicAuthManager,
 ) : ViewModel() {
 
     // ── Session state ───────────────────────────────────────────────
@@ -76,6 +85,23 @@ class MessagesViewModel @Inject constructor(
 
     private val _isSending = MutableStateFlow(false)
     val isSending: StateFlow<Boolean> = _isSending.asStateFlow()
+
+    // ── Streaming state ─────────────────────────────────────────────
+
+    private val _isStreaming = MutableStateFlow(false)
+    val isStreaming: StateFlow<Boolean> = _isStreaming.asStateFlow()
+
+    private val _streamingText = MutableStateFlow("")
+    val streamingText: StateFlow<String> = _streamingText.asStateFlow()
+
+    private val _streamingToolStatus = MutableStateFlow<String?>(null)
+    val streamingToolStatus: StateFlow<String?> = _streamingToolStatus.asStateFlow()
+
+    /** Active bridge session ID when using Sessions API streaming. */
+    private var _activeStreamId: String? = null
+
+    /** Bridge session ID for Sessions API. */
+    private var _bridgeSessionId: String? = null
 
     data class AudioRequest(val text: String, val voice: String?, val sequence: Int)
 
@@ -207,7 +233,7 @@ class MessagesViewModel @Inject constructor(
                     sessionRepository.sendCmailRelay(
                         department = department,
                         message = message,
-                        sessionId = sid,  // Pass the conversation's session ID — Google Messages pattern
+                        sessionId = sid,
                     )
                 }
                 // No refresh needed — SSE will push new bubbles via chat_watcher
@@ -221,14 +247,6 @@ class MessagesViewModel @Inject constructor(
 
     /**
      * Catch up on missed bubbles — called when the screen resumes.
-     *
-     * When the app goes to background, SSE disconnects. When it comes
-     * back, we need to fetch any bubbles that arrived while we were away.
-     * This re-fetches the tail and upserts into Room. The Flow handles
-     * the UI update automatically via Room's InvalidationTracker.
-     *
-     * This is the equivalent of Google Messages' "pull on tickle" —
-     * except our tickle is "the app became visible again."
      */
     fun catchUp() {
         val sid = _sessionId.value ?: return
@@ -254,6 +272,160 @@ class MessagesViewModel @Inject constructor(
     fun replayDispatch(text: String, sequence: Int, voice: String? = null) {
         viewModelScope.launch {
             _audioQueue.send(AudioRequest(text, voice, sequence))
+        }
+    }
+
+    // ── Streaming ───────────────────────────────────────────────────
+
+    /**
+     * Send a message with streaming response.
+     *
+     * If Anthropic Sessions API is configured (OAuth token + org UUID),
+     * creates a bridge session and streams via the Sessions API SSE.
+     * Otherwise falls back to File Bridge chat/stream SSE relay.
+     *
+     * Streaming tokens update [streamingText] in real-time.
+     * Tool use events update [streamingToolStatus] for status overlay.
+     */
+    fun sendStreaming(department: String, message: String) {
+        if (message.isBlank() || _isStreaming.value) return
+
+        _isStreaming.value = true
+        _streamingText.value = ""
+        _streamingToolStatus.value = null
+        _isSending.value = true
+
+        val eventFlow: Flow<StreamEvent> = if (authManager.isFullyConfigured) {
+            Timber.i("StreamChat: using Sessions API (bridge)")
+            bridgeStreamFlow(message)
+        } else {
+            Timber.i("StreamChat: using File Bridge fallback")
+            sessionRepository.streamChat(message, department)
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                eventFlow.collect { event ->
+                    when (event) {
+                        is StreamEvent.Token -> {
+                            _streamingText.value += event.text
+                        }
+                        is StreamEvent.Thinking -> {
+                            // Optionally show thinking
+                        }
+                        is StreamEvent.Tool -> {
+                            _streamingToolStatus.value = mapToolStatus(event.name, event.status)
+                        }
+                        is StreamEvent.AssistantText -> {
+                            _streamingText.value = event.text
+                        }
+                        is StreamEvent.Done -> {
+                            Timber.i("StreamChat: done, cost=$%.4f, %dms",
+                                event.costUsd, event.durationMs)
+                            _bridgeSessionId = event.sessionId.ifBlank { _bridgeSessionId }
+                        }
+                        is StreamEvent.Connected -> {
+                            _activeStreamId = event.streamId
+                            _isSending.value = false
+                        }
+                        is StreamEvent.Status -> {
+                            if (event.sessionId.isNotBlank()) {
+                                _bridgeSessionId = event.sessionId
+                            }
+                        }
+                        is StreamEvent.Error -> {
+                            Timber.e("StreamChat: error %s — %s", event.errorType, event.result)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "StreamChat: collection failed")
+            } finally {
+                finalizeStreamingBubble()
+            }
+        }
+    }
+
+    /**
+     * Create a streaming Flow via the Anthropic Sessions API bridge.
+     * Creates a new session (or reuses existing) and subscribes to SSE events.
+     */
+    private fun bridgeStreamFlow(message: String): Flow<StreamEvent> = flow {
+        // Reuse existing bridge session or create a new one
+        val sessionId = _bridgeSessionId ?: sessionsApiClient.createSession(message)
+        if (sessionId == null) {
+            emit(StreamEvent.Error("session_error", "Failed to create bridge session"))
+            return@flow
+        }
+        _bridgeSessionId = sessionId
+
+        // If reusing session, send the new message as an event
+        if (_bridgeSessionId != null && _bridgeSessionId == sessionId) {
+            val sent = sessionsApiClient.sendEvent(sessionId, message)
+            if (!sent) {
+                // Session may be dead — create a new one
+                val newSessionId = sessionsApiClient.createSession(message) ?: run {
+                    emit(StreamEvent.Error("session_error", "Failed to create new bridge session"))
+                    return@flow
+                }
+                _bridgeSessionId = newSessionId
+            }
+        }
+
+        // Poll for new events by counting what we have
+        val currentEvents = sessionsApiClient.getSessionEvents(sessionId)
+        val eventCountBefore = currentEvents?.size ?: 0
+
+        // Subscribe to the session's SSE event stream
+        sessionsApiClient.subscribeToSession(sessionId).collect { event ->
+            emit(event)
+        }
+    }
+
+    /**
+     * Finalize the streaming bubble — flush accumulated text into Room
+     * so it persists after the stream ends.
+     */
+    private fun finalizeStreamingBubble() {
+        val text = _streamingText.value.trim()
+        _streamingText.value = ""
+        _isStreaming.value = false
+        _streamingToolStatus.value = null
+
+        if (text.isBlank()) return
+        val sid = _sessionId.value ?: return
+
+        // Refresh from server to pick up the finalized bubble
+        viewModelScope.launch {
+            try {
+                chatBubbleRepository.loadTail(sid)
+            } catch (e: Exception) {
+                Timber.v("MessagesVM: post-stream refresh failed (non-fatal): %s", e.message)
+            }
+        }
+    }
+
+    companion object {
+        /**
+         * Map tool name + status to a human-readable status string for the UI overlay.
+         */
+        private fun mapToolStatus(toolName: String, status: String): String {
+            if (status == "completed" || status == "stopped") return ""
+
+            val action = when (toolName) {
+                "Bash" -> "Running a command"
+                "Read" -> "Reading files"
+                "Write" -> "Writing code"
+                "Edit" -> "Editing code"
+                "Glob" -> "Finding files"
+                "Grep" -> "Searching code"
+                "Agent" -> "Delegating to a subagent"
+                "WebSearch" -> "Searching the web"
+                "WebFetch" -> "Fetching a page"
+                "TodoWrite" -> "Updating tasks"
+                else -> "Using $toolName"
+            }
+            return "$action..."
         }
     }
 }
