@@ -15,27 +15,26 @@ object TailscaleConfig {
     const val ROUTE33_SERVER = "http://$DG_CORE_IP:8085"
 
     /**
-     * Kokoro TTS — routed through File Bridge proxy.
+     * Kokoro TTS — direct to Oasis, no proxy hop.
      * Returns one complete WAV file (44-byte header + PCM data).
-     * File Bridge proxies to the Kokoro GPU server on OASIS.
      */
-    const val TTS_SERVER = "http://$POP_OS_IP:8600/api/tts"
+    const val TTS_SERVER = "http://$OASIS_IP:8400/api/tts"
 
     /**
-     * Kokoro TTS streaming endpoint — chunked transfer via File Bridge.
+     * Kokoro TTS streaming endpoint — direct to Oasis.
      */
-    const val TTS_STREAM_SERVER = "http://$POP_OS_IP:8600/api/tts/stream"
+    const val TTS_STREAM_SERVER = "http://$OASIS_IP:8400/api/tts/stream"
 
     /**
-     * File Bridge server on pop-os.
+     * File Bridge server on dg-core.
      * Handles file staging (download) and upload (to department cmail inboxes).
      * Runs as systemd service on port 8600.
      */
-    const val FILE_BRIDGE_SERVER = "http://$POP_OS_IP:8600"
+    const val FILE_BRIDGE_SERVER = "http://$DG_CORE_IP:8600"
 
     /**
      * Living Sandbox — auto-generated architecture graph.
      * React frontend served by File Bridge at /sandbox/ path.
      */
-    const val SANDBOX_URL = "http://$POP_OS_IP:8600/sandbox/"
+    const val SANDBOX_URL = "http://$DG_CORE_IP:8600/sandbox/"
 }
