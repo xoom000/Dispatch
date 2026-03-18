@@ -98,6 +98,20 @@ class DispatchPlaybackService : MediaSessionService() {
     /** Tracks how many messages are still in the pipeline (downloading or playing). */
     private val pendingCount = AtomicInteger(0)
 
+    /**
+     * Messages waiting to play. Streaming DataSources can't be pre-buffered by ExoPlayer
+     * because the HTTP POST response is consumed once and discarded. We hold pending
+     * messages here and play them one at a time when STATE_ENDED fires.
+     */
+    private data class PendingMessage(
+        val text: String,
+        val voice: String,
+        val sender: String,
+        val traceId: String?,
+        val fcmReceiveTime: Long,
+    )
+    private val messageQueue = ArrayDeque<PendingMessage>()
+
     /** Tap gesture debounce for Pixel Buds. */
     private val tapHandler = android.os.Handler(Looper.getMainLooper())
     private var pendingSingleTap: Runnable? = null
@@ -345,14 +359,43 @@ class DispatchPlaybackService : MediaSessionService() {
     // ── Streaming TTS Playback ─────────────────────────────────────
 
     /**
-     * Queue a streaming TTS item. ExoPlayer opens the connection itself,
-     * POSTs to Kokoro's /api/tts/stream endpoint, and plays audio as
-     * chunks arrive. First audio in ~500ms instead of 2-5s.
+     * Queue a streaming TTS message. If the player is idle/ended, play immediately.
+     * If already playing, hold in messageQueue — STATE_ENDED triggers the next one.
+     *
+     * We do NOT add multiple streaming items to ExoPlayer's playlist because
+     * ExoPlayer eagerly pre-buffers the next item's DataSource, consuming the
+     * HTTP streaming response before it's time to play. The response is gone
+     * by the time ExoPlayer transitions to it.
      *
      * Must be called on main thread.
      */
     @OptIn(UnstableApi::class)
     private fun queueStreamingItem(
+        text: String,
+        voice: String,
+        sender: String,
+        traceId: String?,
+        fcmReceiveTime: Long,
+    ) {
+        val p = player ?: return
+
+        if (p.playbackState == Player.STATE_IDLE || p.playbackState == Player.STATE_ENDED) {
+            // Player is free — play immediately
+            playStreamingItem(text, voice, sender, traceId, fcmReceiveTime)
+        } else {
+            // Player is busy — hold for later
+            messageQueue.addLast(PendingMessage(text, voice, sender, traceId, fcmReceiveTime))
+            Timber.i("[trace:%s] DispatchPlaybackService: queued for later, %d in queue",
+                traceId ?: "none", messageQueue.size)
+        }
+    }
+
+    /**
+     * Start streaming a single TTS item NOW. Creates the DataSource and MediaSource,
+     * clears stale items, and starts playback.
+     */
+    @OptIn(UnstableApi::class)
+    private fun playStreamingItem(
         text: String,
         voice: String,
         sender: String,
@@ -379,18 +422,22 @@ class DispatchPlaybackService : MediaSessionService() {
         val mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory)
             .createMediaSource(mediaItem)
 
-        if (p.playbackState == Player.STATE_IDLE || p.playbackState == Player.STATE_ENDED) {
-            p.clearMediaItems()
-            p.addMediaSource(mediaSource)
-            p.prepare()
-            p.play()
-        } else {
-            p.addMediaSource(mediaSource)
-        }
+        p.clearMediaItems()
+        p.addMediaSource(mediaSource)
+        p.prepare()
+        p.play()
 
         val queueMs = if (fcmReceiveTime > 0) System.currentTimeMillis() - fcmReceiveTime else -1L
-        Timber.i("[trace:%s] DispatchPlaybackService: queued STREAM item, pending=%d, fcm->queue=%dms",
-            traceId ?: "none", p.mediaItemCount, queueMs)
+        Timber.i("[trace:%s] DispatchPlaybackService: PLAYING stream, pending=%d, queued=%d, fcm->play=%dms",
+            traceId ?: "none", pendingCount.get(), messageQueue.size, queueMs)
+    }
+
+    /** Play the next message from the queue, if any. Must be called on main thread. */
+    private fun playNextFromQueue() {
+        val next = messageQueue.removeFirstOrNull() ?: return
+        Timber.i("[trace:%s] DispatchPlaybackService: playing next from queue, %d remaining",
+            next.traceId ?: "none", messageQueue.size)
+        playStreamingItem(next.text, next.voice, next.sender, next.traceId, next.fcmReceiveTime)
     }
 
     /**
@@ -547,15 +594,17 @@ class DispatchPlaybackService : MediaSessionService() {
         override fun onPlaybackStateChanged(playbackState: Int) {
             when (playbackState) {
                 Player.STATE_ENDED -> {
-                    // Decrement for the final item — onMediaItemTransition only fires BETWEEN items
                     val remaining = pendingCount.decrementAndGet().coerceAtLeast(0)
-                    Timber.i("DispatchPlaybackService: playback ended (queue empty), pending=%d", remaining)
-                    if (remaining <= 0) {
+                    Timber.i("DispatchPlaybackService: playback ended, pending=%d, queued=%d",
+                        remaining, messageQueue.size)
+                    flushLogs()
+
+                    // Play next queued message if any
+                    if (messageQueue.isNotEmpty()) {
+                        playNextFromQueue()
+                    } else if (remaining <= 0) {
                         this@DispatchPlaybackService.playbackState.onQueueEmpty()
                     }
-                    flushLogs()
-                    // Temp file cleanup deferred to queueMediaItem (when next message arrives)
-                    // or onDestroy. Cleaning here nukes files ExoPlayer's playlist still references.
                 }
                 Player.STATE_READY -> {
                     Timber.d("DispatchPlaybackService: player ready")
@@ -569,12 +618,12 @@ class DispatchPlaybackService : MediaSessionService() {
 
         override fun onPlayerError(error: PlaybackException) {
             Timber.e(error, "DispatchPlaybackService: ExoPlayer error — %s", error.message)
-            val p = player ?: return
-            if (p.hasNextMediaItem()) {
-                Timber.i("DispatchPlaybackService: skipping failed item, trying next")
-                p.seekToNextMediaItem()
-                p.prepare()
-                p.play()
+            pendingCount.decrementAndGet().coerceAtLeast(0)
+
+            // Try next queued message if any
+            if (messageQueue.isNotEmpty()) {
+                Timber.i("DispatchPlaybackService: error recovery — playing next from queue")
+                playNextFromQueue()
             } else {
                 pendingCount.set(0)
                 this@DispatchPlaybackService.playbackState.onQueueEmpty()
