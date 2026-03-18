@@ -408,6 +408,15 @@ class DispatchPlaybackService : MediaSessionService() {
         private var inputStream: InputStream? = null
         private var streamId: String? = null
 
+        /**
+         * Rewritten WAV header with unknown-length markers.
+         * Kokoro sends a 2GB placeholder size which makes ExoPlayer wait forever.
+         * We rewrite RIFF size (bytes 4-7) and data size (bytes 40-43) to 0xFFFFFFFF
+         * so ExoPlayer relies on end-of-stream instead of the header's lie.
+         */
+        private var headerBuffer: ByteArray? = null
+        private var headerPos = 0
+
         override fun open(dataSpec: DataSpec): Long {
             streamId = dataSpec.uri.lastPathSegment
                 ?: throw IOException("Missing stream ID in URI: ${dataSpec.uri}")
@@ -442,15 +451,43 @@ class DispatchPlaybackService : MediaSessionService() {
             inputStream = response!!.body?.byteStream()
                 ?: throw IOException("Kokoro stream returned empty body")
 
+            // Read the 44-byte WAV header and rewrite size fields.
+            // Kokoro sends data_size=0x7FFFFF00 (2GB placeholder) which causes
+            // ExoPlayer's WavExtractor to wait forever for data that never comes.
+            val header = ByteArray(WAV_HEADER_BYTES)
+            var read = 0
+            while (read < WAV_HEADER_BYTES) {
+                val n = inputStream!!.read(header, read, WAV_HEADER_BYTES - read)
+                if (n == -1) throw IOException("Stream ended before WAV header complete")
+                read += n
+            }
+            // Rewrite RIFF chunk size (bytes 4-7) to unknown
+            header[4] = 0xFF.toByte(); header[5] = 0xFF.toByte()
+            header[6] = 0xFF.toByte(); header[7] = 0xFF.toByte()
+            // Rewrite data chunk size (bytes 40-43) to unknown
+            header[40] = 0xFF.toByte(); header[41] = 0xFF.toByte()
+            header[42] = 0xFF.toByte(); header[43] = 0xFF.toByte()
+            headerBuffer = header
+            headerPos = 0
+
             val connectMs = System.currentTimeMillis() - req.startTime
-            Timber.i("[trace:%s] TtsStreamDataSource: connected, first bytes arriving, total=%dms",
+            Timber.i("[trace:%s] TtsStreamDataSource: connected, header rewritten, total=%dms",
                 req.traceId ?: "none", connectMs)
 
-            // LENGTH_UNSET = streaming/unknown length — ExoPlayer won't expect a fixed size
             return C.LENGTH_UNSET.toLong()
         }
 
         override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
+            // Serve rewritten WAV header first
+            val hdr = headerBuffer
+            if (hdr != null && headerPos < WAV_HEADER_BYTES) {
+                val remaining = WAV_HEADER_BYTES - headerPos
+                val toRead = minOf(length, remaining)
+                System.arraycopy(hdr, headerPos, buffer, offset, toRead)
+                headerPos += toRead
+                return toRead
+            }
+            // Then stream PCM bytes from Kokoro
             val stream = inputStream ?: return C.RESULT_END_OF_INPUT
             val bytesRead = stream.read(buffer, offset, length)
             return if (bytesRead == -1) C.RESULT_END_OF_INPUT else bytesRead
@@ -791,6 +828,7 @@ class DispatchPlaybackService : MediaSessionService() {
         private const val CONNECT_TIMEOUT_S = 5L
         private const val READ_TIMEOUT_S = 30L
         private const val WAV_HEADER_SIZE = 44L
+        private const val WAV_HEADER_BYTES = 44
         private const val MAX_RETRIES = 2
         private const val RETRY_DELAY_MS = 2000L
 
