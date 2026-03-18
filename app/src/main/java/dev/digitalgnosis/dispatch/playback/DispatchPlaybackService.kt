@@ -406,23 +406,18 @@ class DispatchPlaybackService : MediaSessionService() {
 
         private var response: okhttp3.Response? = null
         private var inputStream: InputStream? = null
-        private var streamId: String? = null
-
-        /**
-         * Rewritten WAV header with unknown-length markers.
-         * Kokoro sends a 2GB placeholder size which makes ExoPlayer wait forever.
-         * We rewrite RIFF size (bytes 4-7) and data size (bytes 40-43) to 0xFFFFFFFF
-         * so ExoPlayer relies on end-of-stream instead of the header's lie.
-         */
-        private var headerBuffer: ByteArray? = null
-        private var headerPos = 0
+        private var traceId: String? = null
+        private var totalBytesRead = 0L
+        private var endOfStreamReached = false
 
         override fun open(dataSpec: DataSpec): Long {
-            streamId = dataSpec.uri.lastPathSegment
+            val streamId = dataSpec.uri.lastPathSegment
                 ?: throw IOException("Missing stream ID in URI: ${dataSpec.uri}")
 
-            val req = streamRegistry.remove(streamId!!)
+            val req = streamRegistry.remove(streamId)
                 ?: throw IOException("Unknown stream ID: $streamId")
+
+            traceId = req.traceId
 
             val payload = JSONObject().apply {
                 put("text", req.text)
@@ -436,9 +431,8 @@ class DispatchPlaybackService : MediaSessionService() {
 
             req.traceId?.let { requestBuilder.header("X-Trace-Id", it) }
 
-            val firstChunkMs = System.currentTimeMillis() - req.startTime
-            Timber.i("[trace:%s] TtsStreamDataSource: opening POST to Kokoro, setup=%dms",
-                req.traceId ?: "none", firstChunkMs)
+            Timber.i("[trace:%s] TtsStreamDataSource: opening POST to Kokoro",
+                traceId ?: "none")
 
             response = streamingClient.newCall(requestBuilder.build()).execute()
 
@@ -451,51 +445,51 @@ class DispatchPlaybackService : MediaSessionService() {
             inputStream = response!!.body?.byteStream()
                 ?: throw IOException("Kokoro stream returned empty body")
 
-            // Read the 44-byte WAV header and rewrite size fields.
-            // Kokoro sends data_size=0x7FFFFF00 (2GB placeholder) which causes
-            // ExoPlayer's WavExtractor to wait forever for data that never comes.
-            val header = ByteArray(WAV_HEADER_BYTES)
-            var read = 0
-            while (read < WAV_HEADER_BYTES) {
-                val n = inputStream!!.read(header, read, WAV_HEADER_BYTES - read)
-                if (n == -1) throw IOException("Stream ended before WAV header complete")
-                read += n
-            }
-            // Rewrite RIFF chunk size (bytes 4-7) to unknown
-            header[4] = 0xFF.toByte(); header[5] = 0xFF.toByte()
-            header[6] = 0xFF.toByte(); header[7] = 0xFF.toByte()
-            // Rewrite data chunk size (bytes 40-43) to unknown
-            header[40] = 0xFF.toByte(); header[41] = 0xFF.toByte()
-            header[42] = 0xFF.toByte(); header[43] = 0xFF.toByte()
-            headerBuffer = header
-            headerPos = 0
-
             val connectMs = System.currentTimeMillis() - req.startTime
-            Timber.i("[trace:%s] TtsStreamDataSource: connected, header rewritten, total=%dms",
-                req.traceId ?: "none", connectMs)
+            Timber.i("[trace:%s] TtsStreamDataSource: connected in %dms",
+                traceId ?: "none", connectMs)
 
+            // Return LENGTH_UNSET — WavExtractor uses this to know content length is unknown.
+            // The WAV header inside the stream has a placeholder size but the extractor
+            // WILL honor END_OF_INPUT from read() when the stream closes.
             return C.LENGTH_UNSET.toLong()
         }
 
         override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
-            // Serve rewritten WAV header first
-            val hdr = headerBuffer
-            if (hdr != null && headerPos < WAV_HEADER_BYTES) {
-                val remaining = WAV_HEADER_BYTES - headerPos
-                val toRead = minOf(length, remaining)
-                System.arraycopy(hdr, headerPos, buffer, offset, toRead)
-                headerPos += toRead
-                return toRead
-            }
-            // Then stream PCM bytes from Kokoro
+            if (endOfStreamReached) return C.RESULT_END_OF_INPUT
+            if (length == 0) return 0
+
             val stream = inputStream ?: return C.RESULT_END_OF_INPUT
-            val bytesRead = stream.read(buffer, offset, length)
-            return if (bytesRead == -1) C.RESULT_END_OF_INPUT else bytesRead
+
+            val bytesRead = try {
+                stream.read(buffer, offset, length)
+            } catch (e: IOException) {
+                Timber.w("[trace:%s] TtsStreamDataSource: read IOException after %d bytes: %s",
+                    traceId ?: "none", totalBytesRead, e.message)
+                endOfStreamReached = true
+                return C.RESULT_END_OF_INPUT
+            }
+
+            if (bytesRead == -1) {
+                endOfStreamReached = true
+                Timber.i("[trace:%s] TtsStreamDataSource: END OF STREAM after %d bytes",
+                    traceId ?: "none", totalBytesRead)
+                return C.RESULT_END_OF_INPUT
+            }
+
+            totalBytesRead += bytesRead
+
+            // Call transferBytesRead per BaseDataSource contract
+            bytesTransferred(bytesRead)
+
+            return bytesRead
         }
 
-        override fun getUri(): Uri? = streamId?.let { Uri.parse("tts://stream/$it") }
+        override fun getUri(): Uri? = Uri.parse("tts://stream")
 
         override fun close() {
+            Timber.i("[trace:%s] TtsStreamDataSource: close() — %d bytes total, eof=%s",
+                traceId ?: "none", totalBytesRead, endOfStreamReached)
             try { inputStream?.close() } catch (_: Exception) {}
             try { response?.close() } catch (_: Exception) {}
             inputStream = null
