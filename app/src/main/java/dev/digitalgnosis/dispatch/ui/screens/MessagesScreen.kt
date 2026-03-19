@@ -65,8 +65,14 @@ fun MessagesScreen(
         }
     }
 
-    // FLAT LAYOUT: No Scaffold, using Column to fill the MainActivity modifier
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+    // FULL-SCREEN: renders outside Scaffold — no bottomBar conflicts.
+    // imePadding() handles keyboard. statusBarsPadding() handles top inset.
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .background(MaterialTheme.colorScheme.surface)
+        .statusBarsPadding()
+        .imePadding()
+    ) {
         // Custom Header
         Row(
             modifier = Modifier
@@ -127,11 +133,11 @@ fun MessagesScreen(
             item { Spacer(modifier = Modifier.height(16.dp)) }
         }
 
-        // RCS Input Bar
+        // RCS Input Bar — keyboard handled by imePadding() on parent Column
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .windowInsetsPadding(WindowInsets.ime)
+                .navigationBarsPadding()
                 .padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {

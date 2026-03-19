@@ -306,6 +306,82 @@ class SessionsApiClient @Inject constructor(
         val environmentId: String,
     )
 
+    // ── Conversation History ────────────────────────────────────────
+
+    /**
+     * Fetch session events and convert to ChatBubble format for the UI.
+     *
+     * Maps Sessions API event types to bubble types:
+     *   user    → "nigel" bubble
+     *   assistant (text blocks) → "agent" bubble
+     *   assistant (tool_use blocks) → "tool" bubble
+     *   result  → skipped (metadata only)
+     *
+     * Returns bubbles in chronological order with synthetic sequence numbers.
+     */
+    fun fetchBubbles(sessionId: String): List<ChatBubbleData> {
+        val events = getSessionEvents(sessionId) ?: return emptyList()
+        val bubbles = mutableListOf<ChatBubbleData>()
+        var seq = 0
+
+        for (ev in events) {
+            val type = ev.optString("type", "")
+            val timestamp = ev.optString("created_at", "")
+
+            when (type) {
+                "user" -> {
+                    val msg = ev.optJSONObject("message")
+                    val content = msg?.optString("content", "")
+                        ?: msg?.optJSONArray("content")?.let { arr ->
+                            (0 until arr.length()).mapNotNull { i ->
+                                val block = arr.optJSONObject(i)
+                                if (block?.optString("type") == "text") block.optString("text") else null
+                            }.joinToString("\n")
+                        }
+                        ?: ""
+                    if (content.isNotBlank()) {
+                        bubbles.add(ChatBubbleData("nigel", content, "", seq++, 0, timestamp))
+                    }
+                }
+
+                "assistant" -> {
+                    val msg = ev.optJSONObject("message")
+                    val contentArr = msg?.optJSONArray("content")
+                    if (contentArr != null) {
+                        var subSeq = 0
+                        for (i in 0 until contentArr.length()) {
+                            val block = contentArr.optJSONObject(i) ?: continue
+                            when (block.optString("type")) {
+                                "text" -> {
+                                    val text = block.optString("text", "")
+                                    if (text.isNotBlank()) {
+                                        bubbles.add(ChatBubbleData("agent", text, "", seq, subSeq++, timestamp))
+                                    }
+                                }
+                                "tool_use" -> {
+                                    val toolName = block.optString("name", "tool")
+                                    bubbles.add(ChatBubbleData("tool", toolName, "completed", seq, subSeq++, timestamp))
+                                }
+                            }
+                        }
+                        seq++
+                    }
+                }
+                // Skip: result, system, rate_limit_event, etc.
+            }
+        }
+        return bubbles
+    }
+
+    data class ChatBubbleData(
+        val type: String,
+        val text: String,
+        val detail: String,
+        val sequence: Int,
+        val subSeq: Int,
+        val timestamp: String,
+    )
+
     // ── Discovery ────────────────────────────────────────────────────
 
     /**

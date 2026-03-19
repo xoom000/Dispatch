@@ -1,5 +1,6 @@
 package dev.digitalgnosis.dispatch.data
 
+import dev.digitalgnosis.dispatch.network.SessionsApiClient
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
@@ -9,18 +10,17 @@ import javax.inject.Singleton
 /**
  * Repository for chat bubbles — the single source of truth for conversation data.
  *
- * Architecture (mirrors Google Messages):
- *   SSE event → Repository.insertFromSse() → Room DAO → InvalidationTracker
+ * Architecture:
+ *   Sessions API (GET /v1/sessions/{id}/events) → parse to bubbles → Room DAO
  *   Room DAO (Flow) → Repository.observeBubbles() → ViewModel → Compose
  *
+ * Data source is the Anthropic Sessions API. Room is the local cache.
  * The ViewModel only talks to this repository. Never to the DAO directly.
- * The Repository owns all data operations: network fetch, SSE insertion,
- * Room observation, and domain model mapping.
  */
 @Singleton
 class ChatBubbleRepository @Inject constructor(
     private val chatBubbleDao: ChatBubbleDao,
-    private val sessionRepository: SessionRepository,
+    private val sessionsApiClient: SessionsApiClient,
 ) {
 
     /**
@@ -29,7 +29,6 @@ class ChatBubbleRepository @Inject constructor(
      *
      * Room's InvalidationTracker fires automatically when
      * chat_bubbles table changes — no manual notification needed.
-     * This is the equivalent of Google Messages' ContentObserver → callbackFlow.
      */
     fun observeBubbles(sessionId: String): Flow<List<ChatBubble>> =
         chatBubbleDao.observeBubbles(sessionId).map { entities ->
@@ -37,29 +36,28 @@ class ChatBubbleRepository @Inject constructor(
         }
 
     /**
-     * Initial load — fetch the tail from the server and populate Room.
+     * Initial load — fetch events from Sessions API and populate Room.
      * Called once when the conversation screen opens.
      *
      * Returns metadata (hasEarlier, minSequence, maxSequence) for the ViewModel.
      */
     suspend fun loadTail(sessionId: String, limit: Int = 100): LoadResult {
         return try {
-            val result = sessionRepository.fetchChatBubbles(
-                sessionId = sessionId,
-                limit = limit,
-                tail = true,
-            )
+            val bubbles = sessionsApiClient.fetchBubbles(sessionId)
 
-            if (result.bubbles.isNotEmpty()) {
-                val entities = result.bubbles.map { it.toEntity(sessionId) }
+            if (bubbles.isNotEmpty()) {
+                val entities = bubbles.map { it.toEntity(sessionId) }
                 chatBubbleDao.upsertAll(entities)
             }
 
+            val maxSeq = bubbles.maxOfOrNull { it.sequence } ?: 0
+            val minSeq = bubbles.minOfOrNull { it.sequence } ?: 0
+
             LoadResult(
-                count = result.bubbles.size,
-                minSequence = result.minSequence,
-                maxSequence = result.maxSequence,
-                hasEarlier = result.hasEarlier,
+                count = bubbles.size,
+                minSequence = minSeq,
+                maxSequence = maxSeq,
+                hasEarlier = false, // Sessions API returns all events, no pagination needed
             )
         } catch (e: Exception) {
             Timber.e(e, "ChatBubbleRepo: tail load failed for %s", sessionId.take(8))
@@ -68,40 +66,16 @@ class ChatBubbleRepository @Inject constructor(
     }
 
     /**
-     * Scroll-up — fetch older bubbles before a given sequence.
-     * Inserts into Room, which triggers the Flow automatically.
+     * Scroll-up — not needed for Sessions API (returns all events).
+     * Kept for interface compatibility.
      */
     suspend fun loadBefore(sessionId: String, beforeSequence: Int, limit: Int = 50): LoadResult {
-        return try {
-            val result = sessionRepository.fetchChatBubbles(
-                sessionId = sessionId,
-                limit = limit,
-                tail = false,
-                beforeSequence = beforeSequence,
-            )
-
-            if (result.bubbles.isNotEmpty()) {
-                val entities = result.bubbles.map { it.toEntity(sessionId) }
-                chatBubbleDao.upsertAll(entities)
-            }
-
-            LoadResult(
-                count = result.bubbles.size,
-                minSequence = result.minSequence,
-                maxSequence = result.maxSequence,
-                hasEarlier = result.hasEarlier,
-            )
-        } catch (e: Exception) {
-            Timber.e(e, "ChatBubbleRepo: loadBefore failed for %s", sessionId.take(8))
-            LoadResult(0, 0, 0, false)
-        }
+        return LoadResult(0, 0, 0, false)
     }
 
     /**
      * Insert a single bubble from an SSE chat_bubble event.
      * Room's InvalidationTracker notifies all Flow collectors automatically.
-     *
-     * This is the push path — no polling needed.
      */
     suspend fun insertFromSse(sessionId: String, bubble: ChatBubble) {
         try {
@@ -158,6 +132,16 @@ private fun ChatBubbleEntity.toDomain() = ChatBubble(
 )
 
 private fun ChatBubble.toEntity(sessionId: String) = ChatBubbleEntity(
+    sessionId = sessionId,
+    sequence = sequence,
+    subSeq = subSeq,
+    type = type,
+    text = text,
+    detail = detail,
+    timestamp = timestamp,
+)
+
+private fun SessionsApiClient.ChatBubbleData.toEntity(sessionId: String) = ChatBubbleEntity(
     sessionId = sessionId,
     sequence = sequence,
     subSeq = subSeq,

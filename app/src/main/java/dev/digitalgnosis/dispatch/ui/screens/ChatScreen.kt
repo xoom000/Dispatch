@@ -32,19 +32,13 @@ fun ChatScreen(
     modifier: Modifier = Modifier,
     viewModel: ChatViewModel = hiltViewModel(),
     onComposeNew: () -> Unit,
+    onOpenConversation: (sessionId: String, department: String) -> Unit = { _, _ -> },
 ) {
     val sessions by viewModel.sessions.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
-    val selectedSession by viewModel.selectedSession.collectAsState()
     val authStatus by viewModel.authStatus.collectAsState()
 
-    if (selectedSession != null) {
-        MessagesScreen(
-            threadId = selectedSession!!.id,
-            department = selectedSession!!.title,
-            onBack = { viewModel.selectSession(null) }
-        )
-    } else {
+    run {
         Box(modifier = modifier.fillMaxSize()) {
             Column {
                 Row(
@@ -93,7 +87,7 @@ fun ChatScreen(
 
                 LazyColumn(modifier = Modifier.weight(1f)) {
                     items(sessions) { session ->
-                        SessionRow(session) { viewModel.selectSession(session) }
+                        SessionRow(session) { onOpenConversation(session.id, session.title) }
                     }
                     item { Spacer(modifier = Modifier.height(80.dp)) }
                 }

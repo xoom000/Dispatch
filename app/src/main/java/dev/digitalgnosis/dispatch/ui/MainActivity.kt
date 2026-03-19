@@ -122,6 +122,11 @@ private data class LiveSessionParams(
     val sessionId: String? = null,
 )
 
+private data class ConversationParams(
+    val sessionId: String,
+    val department: String,
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DispatchApp(
@@ -150,6 +155,7 @@ fun DispatchApp(
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var showCompose by rememberSaveable { mutableStateOf(false) }
     var liveSessionParams by remember { mutableStateOf<LiveSessionParams?>(null) }
+    var conversationParams by remember { mutableStateOf<ConversationParams?>(null) }
     var currentTab by rememberSaveable { mutableStateOf(DispatchTab.CHAT.name) }
     val selectedTab = try { DispatchTab.valueOf(currentTab) } catch (e: Exception) { DispatchTab.CHAT }
 
@@ -184,6 +190,15 @@ fun DispatchApp(
         SendScreen(
             draft = sendDraft,
             onDismiss = { showCompose = false },
+        )
+        return
+    }
+
+    if (conversationParams != null) {
+        MessagesScreen(
+            threadId = conversationParams!!.sessionId,
+            department = conversationParams!!.department,
+            onBack = { conversationParams = null },
         )
         return
     }
@@ -225,6 +240,9 @@ fun DispatchApp(
                 DispatchTab.CHAT -> ChatScreen(
                     modifier = screenModifier,
                     onComposeNew = { showCompose = true },
+                    onOpenConversation = { sid, dept ->
+                        conversationParams = ConversationParams(sid, dept)
+                    },
                 )
                 DispatchTab.PULSE -> PulseScreen(
                     modifier = screenModifier,
