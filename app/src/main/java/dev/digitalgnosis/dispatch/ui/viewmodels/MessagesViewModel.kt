@@ -3,6 +3,7 @@ package dev.digitalgnosis.dispatch.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.digitalgnosis.dispatch.config.AnthropicAuthManager
+import dev.digitalgnosis.dispatch.config.TailscaleConfig
 import dev.digitalgnosis.dispatch.data.ChatBubble
 import dev.digitalgnosis.dispatch.data.ChatBubbleRepository
 import dev.digitalgnosis.dispatch.data.SessionRepository
@@ -120,6 +121,20 @@ class MessagesViewModel @Inject constructor(
                     Timber.e(e, "MessagesVM: audio playback failed for seq %d", request.sequence)
                 } finally {
                     _playingSequence.value = null
+                }
+            }
+        }
+
+        // Auto-fetch OAuth credentials from File Bridge if not already configured
+        if (!authManager.isAuthenticated) {
+            viewModelScope.launch(Dispatchers.IO) {
+                val fetched = authManager.fetchFromFileBridge(TailscaleConfig.FILE_BRIDGE_SERVER)
+                if (fetched) {
+                    // Also discover the bridge environment
+                    sessionsApiClient.discoverBridgeEnvironment()?.let {
+                        authManager.bridgeEnvironmentId = it
+                    }
+                    Timber.i("MessagesVM: auto-configured Sessions API auth")
                 }
             }
         }
