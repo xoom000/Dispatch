@@ -50,25 +50,29 @@ class SessionsApiClient @Inject constructor(
     // ── Session Lifecycle ────────────────────────────────────────────
 
     /**
-     * Create a new session on the bridge.
+     * Create a new session on the bridge with an initial prompt.
      * Returns the session ID (format: session_01...) or null on failure.
+     *
+     * The initial message is included in the create request so the bridge
+     * processes it immediately — no separate sendEvent needed for turn 1.
      */
     fun createSession(prompt: String): String? {
-        val envId = authManager.bridgeEnvironmentId ?: return null
+        // Discover bridge dynamically if not set or stale
+        val envId = authManager.bridgeEnvironmentId
+            ?: discoverBridgeEnvironment()?.also { authManager.bridgeEnvironmentId = it }
+            ?: run {
+                Timber.e("SessionsAPI: no bridge environment available")
+                return null
+            }
 
         val payload = JSONObject().apply {
             put("title", prompt.take(60))
             put("events", JSONArray().put(JSONObject().apply {
-                put("type", "event")
-                put("data", JSONObject().apply {
-                    put("uuid", java.util.UUID.randomUUID().toString())
-                    put("session_id", "")
-                    put("type", "user")
-                    put("parent_tool_use_id", JSONObject.NULL)
-                    put("message", JSONObject().apply {
-                        put("role", "user")
-                        put("content", prompt)
-                    })
+                put("type", "user")
+                put("uuid", java.util.UUID.randomUUID().toString())
+                put("message", JSONObject().apply {
+                    put("role", "user")
+                    put("content", prompt)
                 })
             }))
             put("session_context", JSONObject().apply {
@@ -95,26 +99,23 @@ class SessionsApiClient @Inject constructor(
     /**
      * Send a message (event) to an existing session.
      * Returns true on success.
+     *
+     * Format matches JSONL session file structure: flat user event with
+     * uuid, message.role, message.content. Wrapped in {"events": [...]}.
      */
     fun sendEvent(sessionId: String, message: String): Boolean {
-        val payload = JSONObject().apply {
-            put("type", "event")
-            put("data", JSONObject().apply {
-                put("uuid", java.util.UUID.randomUUID().toString())
-                put("session_id", sessionId)
+        val wrapper = JSONObject().apply {
+            put("events", JSONArray().put(JSONObject().apply {
                 put("type", "user")
-                put("parent_tool_use_id", JSONObject.NULL)
+                put("uuid", java.util.UUID.randomUUID().toString())
                 put("message", JSONObject().apply {
                     put("role", "user")
                     put("content", message)
                 })
-            })
+            }))
         }
 
-        // Wrap in array — the events endpoint expects an array
-        val eventsPayload = JSONArray().put(payload)
-
-        val result = executePost("/v1/sessions/$sessionId/events", eventsPayload.toString())
+        val result = executePost("/v1/sessions/$sessionId/events", wrapper.toString())
         return result != null
     }
 
@@ -308,27 +309,47 @@ class SessionsApiClient @Inject constructor(
 
     /**
      * List available compute environments.
-     * Used to discover the bridge environment ID if not hardcoded.
+     * Used to discover the bridge environment ID dynamically.
+     * Returns environments sorted: online bridges first.
      */
     fun listEnvironments(): List<EnvironmentInfo> {
         val body = executeGet("/v1/environment_providers") ?: return emptyList()
         return try {
-            val arr = JSONArray(body)
+            val json = JSONObject(body)
+            val arr = json.optJSONArray("environments") ?: return emptyList()
             (0 until arr.length()).mapNotNull { i ->
                 val env = arr.optJSONObject(i) ?: return@mapNotNull null
+                val bridgeInfo = env.optJSONObject("bridge_info")
                 EnvironmentInfo(
-                    id = env.optString("id", ""),
+                    id = env.optString("environment_id", ""),
                     kind = env.optString("kind", ""),
                     name = env.optString("name", ""),
+                    online = bridgeInfo?.optBoolean("online", false) ?: (env.optString("kind") == "anthropic_cloud"),
                 )
-            }
+            }.sortedByDescending { it.kind == "bridge" && it.online }
         } catch (e: Exception) {
             Timber.e(e, "SessionsAPI: failed to parse environments")
             emptyList()
         }
     }
 
-    data class EnvironmentInfo(val id: String, val kind: String, val name: String)
+    /**
+     * Discover the online bridge environment ID.
+     * Returns the first bridge environment that's online, or null.
+     */
+    fun discoverBridgeEnvironment(): String? {
+        return listEnvironments()
+            .firstOrNull { it.kind == "bridge" && it.online }
+            ?.id
+            ?.also { Timber.i("SessionsAPI: discovered bridge env %s", it.take(20)) }
+    }
+
+    data class EnvironmentInfo(
+        val id: String,
+        val kind: String,
+        val name: String,
+        val online: Boolean = false,
+    )
 
     // ── HTTP helpers ─────────────────────────────────────────────────
 

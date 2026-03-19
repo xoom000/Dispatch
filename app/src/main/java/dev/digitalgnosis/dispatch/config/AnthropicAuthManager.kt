@@ -5,7 +5,11 @@ import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import dagger.hilt.android.qualifiers.ApplicationContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.json.JSONObject
 import timber.log.Timber
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -52,9 +56,13 @@ class AnthropicAuthManager @Inject constructor(
         get() = prefs.getString(KEY_ORG_UUID, null)
         set(value) = prefs.edit().putString(KEY_ORG_UUID, value).apply()
 
-    /** Bridge environment ID — the pop-os remote-control server. */
+    /**
+     * Bridge environment ID — the pop-os remote-control server.
+     * Changes every time remote-control restarts, so always discover
+     * dynamically via GET /v1/environment_providers when null.
+     */
     var bridgeEnvironmentId: String?
-        get() = prefs.getString(KEY_BRIDGE_ENV_ID, DEFAULT_BRIDGE_ENV_ID)
+        get() = prefs.getString(KEY_BRIDGE_ENV_ID, null)
         set(value) = prefs.edit().putString(KEY_BRIDGE_ENV_ID, value).apply()
 
     /** Whether we have enough credentials to make API calls. */
@@ -77,11 +85,54 @@ class AnthropicAuthManager @Inject constructor(
         return headers
     }
 
+    /**
+     * Fetch OAuth credentials from File Bridge.
+     * Pipeline: pop-os credentials → BWS (cron) → File Bridge /config/anthropic-auth → here.
+     * Returns true if credentials were updated.
+     */
+    fun fetchFromFileBridge(fileBridgeUrl: String): Boolean {
+        return try {
+            val client = OkHttpClient.Builder()
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(10, TimeUnit.SECONDS)
+                .build()
+            val request = Request.Builder()
+                .url("$fileBridgeUrl/config/anthropic-auth")
+                .get()
+                .build()
+            val response = client.newCall(request).execute()
+            if (!response.isSuccessful) {
+                Timber.e("AnthropicAuth: File Bridge returned %d", response.code)
+                return false
+            }
+            val body = response.body?.string() ?: return false
+            val json = JSONObject(body)
+
+            val token = json.optString("access_token", "")
+            val orgId = json.optString("org_id", "")
+
+            if (token.isNotBlank()) {
+                oauthToken = token
+                Timber.i("AnthropicAuth: token updated from File Bridge (len=%d)", token.length)
+            }
+            if (orgId.isNotBlank()) {
+                orgUuid = orgId
+                Timber.i("AnthropicAuth: org UUID updated from File Bridge")
+            }
+
+            token.isNotBlank()
+        } catch (e: Exception) {
+            Timber.e(e, "AnthropicAuth: failed to fetch from File Bridge")
+            false
+        }
+    }
+
     /** Clear all stored credentials. */
     fun logout() {
         prefs.edit()
             .remove(KEY_OAUTH_TOKEN)
             .remove(KEY_ORG_UUID)
+            .remove(KEY_BRIDGE_ENV_ID)
             .apply()
         Timber.i("AnthropicAuth: credentials cleared")
     }
@@ -90,9 +141,6 @@ class AnthropicAuthManager @Inject constructor(
         private const val KEY_OAUTH_TOKEN = "oauth_token"
         private const val KEY_ORG_UUID = "org_uuid"
         private const val KEY_BRIDGE_ENV_ID = "bridge_env_id"
-
-        /** Known pop-os bridge environment — from `claude remote-control` output. */
-        private const val DEFAULT_BRIDGE_ENV_ID = "env_01DN9pPUuKQ8ZZmY5JXqf61y"
 
         /** Sessions API version header. */
         private const val API_VERSION = "2023-06-01"
