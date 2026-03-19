@@ -7,7 +7,6 @@ import dev.digitalgnosis.dispatch.config.TokenManager
 import dev.digitalgnosis.dispatch.logging.BigNickTimberTree
 import dev.digitalgnosis.dispatch.logging.FileLogTree
 import dev.digitalgnosis.dispatch.logging.InMemoryLogTree
-import dev.digitalgnosis.dispatch.network.SseConnectionService
 import dev.digitalgnosis.dispatch.tts.ModelManager
 import timber.log.Timber
 import javax.inject.Inject
@@ -45,15 +44,11 @@ class DispatchApplication : Application() {
             Timber.e(e, "ModelManager initialization failed")
         }
 
-        try {
-            SseConnectionService.start(this)
-            Timber.i("SseConnectionService started")
-        } catch (e: Throwable) {
-            Timber.e(e, "SseConnectionService start failed")
-        }
-
-        // EventStreamClient removed — SseConnectionService is the sole SSE owner.
-        // It handles all event types with exponential backoff reconnection.
+        // SSE service started from MainActivity.onCreate() — NOT here.
+        // Application.onCreate() can run from background contexts (broadcast,
+        // content provider) where foreground service starts are banned on
+        // targetSdk 35+. BootReceiver handles the post-boot case.
+        // See: ForegroundServiceStartNotAllowedException
     }
 
     private fun retrieveFcmToken() {

@@ -63,6 +63,11 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         requestNotificationPermission()
 
+        // Start SSE service from Activity (foreground context) — safe on targetSdk 35+.
+        // NOT started from Application.onCreate() which can run from background contexts
+        // where foreground service starts throw ForegroundServiceStartNotAllowedException.
+        SseConnectionService.start(this)
+
         setContent {
             val configuration = LocalConfiguration.current
             val density = LocalDensity.current.density
