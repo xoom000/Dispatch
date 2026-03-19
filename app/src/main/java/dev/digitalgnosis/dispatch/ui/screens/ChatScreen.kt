@@ -19,11 +19,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import dev.digitalgnosis.dispatch.data.SessionInfo
+import dev.digitalgnosis.dispatch.network.SessionsApiClient
 import dev.digitalgnosis.dispatch.ui.components.AgentAvatar
 import dev.digitalgnosis.dispatch.ui.viewmodels.ChatViewModel
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
@@ -37,11 +36,12 @@ fun ChatScreen(
     val sessions by viewModel.sessions.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val selectedSession by viewModel.selectedSession.collectAsState()
+    val authStatus by viewModel.authStatus.collectAsState()
 
     if (selectedSession != null) {
         MessagesScreen(
-            threadId = selectedSession!!.sessionId,
-            department = selectedSession!!.department,
+            threadId = selectedSession!!.id,
+            department = selectedSession!!.title,
             onBack = { viewModel.selectSession(null) }
         )
     } else {
@@ -72,6 +72,22 @@ fun ChatScreen(
                                 Text("N", style = MaterialTheme.typography.labelLarge)
                             }
                         }
+                    }
+                }
+
+                // Auth status banner
+                if (authStatus.isNotBlank()) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = authStatus,
+                            modifier = Modifier.padding(12.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
                     }
                 }
 
@@ -107,12 +123,14 @@ fun ChatScreen(
 }
 
 @Composable
-private fun SessionRow(session: SessionInfo, onClick: () -> Unit) {
-    val label = session.alias.ifBlank { null }
-        ?: session.department
-    val preview = session.summary
-        ?: "Session ${session.sessionId.take(8)}"
-    val time = formatTimestamp(session.lastActivity)
+private fun SessionRow(session: SessionsApiClient.SessionSummary, onClick: () -> Unit) {
+    val label = session.title.ifBlank { "Session ${session.id.take(12)}" }
+    val statusColor = when (session.status) {
+        "running" -> Color(0xFF4CAF50)
+        "idle" -> MaterialTheme.colorScheme.onSurfaceVariant
+        else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+    }
+    val time = formatTimestamp(session.updatedAt.ifBlank { session.createdAt })
 
     Row(
         modifier = Modifier
@@ -122,7 +140,7 @@ private fun SessionRow(session: SessionInfo, onClick: () -> Unit) {
             .padding(start = 16.dp, end = 24.dp, top = 12.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AgentAvatar(name = session.department, size = 52.dp)
+        AgentAvatar(name = label, size = 52.dp)
 
         Spacer(modifier = Modifier.width(16.dp))
 
@@ -135,9 +153,9 @@ private fun SessionRow(session: SessionInfo, onClick: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = preview,
+                text = session.status,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = statusColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )

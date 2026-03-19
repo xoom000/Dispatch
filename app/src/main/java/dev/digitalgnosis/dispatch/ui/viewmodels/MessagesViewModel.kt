@@ -6,7 +6,6 @@ import dev.digitalgnosis.dispatch.config.AnthropicAuthManager
 import dev.digitalgnosis.dispatch.config.TailscaleConfig
 import dev.digitalgnosis.dispatch.data.ChatBubble
 import dev.digitalgnosis.dispatch.data.ChatBubbleRepository
-import dev.digitalgnosis.dispatch.data.SessionRepository
 import dev.digitalgnosis.dispatch.data.StreamEvent
 import dev.digitalgnosis.dispatch.network.AudioStreamClient
 import dev.digitalgnosis.dispatch.network.SessionsApiClient
@@ -31,15 +30,14 @@ import javax.inject.Inject
  * Initial load and scroll-up use one-shot HTTP fetches that write to Room.
  * The Flow handles all UI updates automatically.
  *
- * Streaming: When Anthropic Sessions API is configured, sendStreaming() creates
- * a bridge session and streams the response token-by-token. Falls back to
- * File Bridge SSE relay if Sessions API is not available.
+ * Streaming: sendStreaming() creates a bridge session via the Anthropic
+ * Sessions API and streams the response token-by-token. Sessions API is the
+ * sole conversation protocol — cmail is not used from this ViewModel.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class MessagesViewModel @Inject constructor(
     private val chatBubbleRepository: ChatBubbleRepository,
-    private val sessionRepository: SessionRepository,
     private val audioStreamClient: AudioStreamClient,
     private val sessionsApiClient: SessionsApiClient,
     private val authManager: AnthropicAuthManager,
@@ -235,32 +233,6 @@ class MessagesViewModel @Inject constructor(
     }
 
     /**
-     * Send a message to the department via cmail relay.
-     * No need to poll after — SSE push will deliver the response.
-     */
-    fun sendMessage(department: String, message: String) {
-        if (message.isBlank()) return
-        val sid = _sessionId.value  // The session this screen is displaying
-        viewModelScope.launch {
-            _isSending.value = true
-            try {
-                withContext(Dispatchers.IO) {
-                    sessionRepository.sendCmailRelay(
-                        department = department,
-                        message = message,
-                        sessionId = sid,
-                    )
-                }
-                // No refresh needed — SSE will push new bubbles via chat_watcher
-            } catch (e: Exception) {
-                Timber.e(e, "MessagesVM: send failed")
-            } finally {
-                _isSending.value = false
-            }
-        }
-    }
-
-    /**
      * Catch up on missed bubbles — called when the screen resumes.
      */
     fun catchUp() {
@@ -293,11 +265,10 @@ class MessagesViewModel @Inject constructor(
     // ── Streaming ───────────────────────────────────────────────────
 
     /**
-     * Send a message with streaming response.
+     * Send a message via Anthropic Sessions API with streaming response.
      *
-     * If Anthropic Sessions API is configured (OAuth token + org UUID),
-     * creates a bridge session and streams via the Sessions API SSE.
-     * Otherwise falls back to File Bridge chat/stream SSE relay.
+     * Creates or continues a bridge session and polls for response events.
+     * Requires OAuth token + org UUID + bridge environment to be configured.
      *
      * Streaming tokens update [streamingText] in real-time.
      * Tool use events update [streamingToolStatus] for status overlay.
@@ -310,13 +281,15 @@ class MessagesViewModel @Inject constructor(
         _streamingToolStatus.value = null
         _isSending.value = true
 
-        val eventFlow: Flow<StreamEvent> = if (authManager.isFullyConfigured) {
-            Timber.i("StreamChat: using Sessions API (bridge)")
-            bridgeStreamFlow(message)
-        } else {
-            Timber.i("StreamChat: using File Bridge fallback")
-            sessionRepository.streamChat(message, department)
+        if (!authManager.isFullyConfigured) {
+            Timber.e("StreamChat: Sessions API not configured — cannot send")
+            _isStreaming.value = false
+            _isSending.value = false
+            return
         }
+
+        Timber.i("StreamChat: using Sessions API (bridge)")
+        val eventFlow: Flow<StreamEvent> = bridgeStreamFlow(message)
 
         viewModelScope.launch(Dispatchers.IO) {
             try {

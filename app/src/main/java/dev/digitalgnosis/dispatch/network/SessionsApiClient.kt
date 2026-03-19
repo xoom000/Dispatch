@@ -266,6 +266,46 @@ class SessionsApiClient @Inject constructor(
         }
     }
 
+    // ── Session List ───────────────────────────────────────────────────
+
+    /**
+     * List sessions from the Anthropic Sessions API.
+     * Returns sessions sorted by most recent activity.
+     *
+     * GET /v1/sessions returns session objects with:
+     *   id, title, session_status, created_at, updated_at, environment_id
+     */
+    fun listSessions(limit: Int = 30): List<SessionSummary> {
+        val body = executeGet("/v1/sessions") ?: return emptyList()
+        return try {
+            val json = JSONObject(body)
+            val arr = json.optJSONArray("data") ?: json.optJSONArray("sessions") ?: return emptyList()
+            (0 until minOf(arr.length(), limit)).mapNotNull { i ->
+                val s = arr.optJSONObject(i) ?: return@mapNotNull null
+                SessionSummary(
+                    id = s.optString("id", s.optString("session_id", "")),
+                    title = s.optString("title", "Untitled"),
+                    status = s.optString("session_status", s.optString("status", "unknown")),
+                    createdAt = s.optString("created_at", ""),
+                    updatedAt = s.optString("updated_at", ""),
+                    environmentId = s.optString("environment_id", ""),
+                )
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "SessionsAPI: failed to parse session list")
+            emptyList()
+        }
+    }
+
+    data class SessionSummary(
+        val id: String,
+        val title: String,
+        val status: String,
+        val createdAt: String,
+        val updatedAt: String,
+        val environmentId: String,
+    )
+
     // ── Discovery ────────────────────────────────────────────────────
 
     /**

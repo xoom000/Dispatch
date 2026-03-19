@@ -176,7 +176,7 @@ fun MessagesScreen(
             IconButton(
                 onClick = {
                     if (!isTextBlank) {
-                        viewModel.sendMessage(department, replyText)
+                        viewModel.sendStreaming(department, replyText)
                         replyText = ""
                     }
                 },
