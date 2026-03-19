@@ -19,17 +19,47 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.jsonObject
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.sse.EventSource
 import okhttp3.sse.EventSourceListener
 import okhttp3.sse.EventSources
-import org.json.JSONObject
 import timber.log.Timber
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
+
+// ── SSE event payload models ─────────────────────────────────────────────────
+
+@Serializable
+private data class SseEnvelope(
+    @SerialName("event_type") val eventType: String = "",
+    @SerialName("thread_id") val threadId: String = "",
+    @SerialName("session_id") val sessionId: String = "",
+    val payload: JsonObject? = null,
+)
+
+@Serializable
+private data class ChatBubblePayload(
+    val type: String = "agent",
+    val text: String = "",
+    val detail: String = "",
+    val sequence: Int = 0,
+    @SerialName("sub_seq") val subSeq: Int = 0,
+    val timestamp: String = "",
+)
+
+@Serializable
+private data class ChunkPayload(
+    val text: String = "",
+)
 
 /**
  * Foreground service that owns the SSE connection to File Bridge.
@@ -54,6 +84,8 @@ class SseConnectionService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    private val json = Json { ignoreUnknownKeys = true }
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)  // 20s — Tailscale cold-start after Doze can take 10-15s
@@ -147,23 +179,23 @@ class SseConnectionService : Service() {
             if (id != null) lastEventId = id
 
             try {
-                val json = JSONObject(data)
-                val eventType = type ?: json.optString("event_type", "")
-                val threadId = json.optString("thread_id", "")
-                val payload = json.optJSONObject("payload")
+                val envelope = json.decodeFromString<SseEnvelope>(data)
+                val eventType = type?.takeIf { it.isNotBlank() } ?: envelope.eventType
 
                 when (eventType) {
                     // ── Real-time chat bubbles ──
                     "chat_bubble" -> {
-                        val sessionId = json.optString("session_id", "")
+                        val sessionId = envelope.sessionId
+                        val payload = envelope.payload
                         if (sessionId.isNotBlank() && payload != null) {
+                            val p = json.decodeFromJsonElement<ChatBubblePayload>(payload)
                             val bubble = ChatBubble(
-                                type = payload.optString("type", "agent"),
-                                text = payload.optString("text", ""),
-                                detail = payload.optString("detail", ""),
-                                sequence = payload.optInt("sequence", 0),
-                                subSeq = payload.optInt("sub_seq", 0),
-                                timestamp = payload.optString("timestamp", ""),
+                                type = p.type,
+                                text = p.text,
+                                detail = p.detail,
+                                sequence = p.sequence,
+                                subSeq = p.subSeq,
+                                timestamp = p.timestamp,
                             )
                             scope.launch {
                                 chatBubbleRepository.insertFromSse(sessionId, bubble)
@@ -173,16 +205,21 @@ class SseConnectionService : Service() {
 
                     // ── Legacy chunk streaming ──
                     "agent_message_chunk", "agent_thought_chunk" -> {
-                        val text = payload?.optString("text", "") ?: ""
-                        if (threadId.isNotBlank() && text.isNotEmpty()) {
-                            messageRepository.emitLiveChunk(
-                                MessageChunk(threadId = threadId, text = text, type = eventType)
-                            )
+                        val threadId = envelope.threadId
+                        val payload = envelope.payload
+                        if (threadId.isNotBlank() && payload != null) {
+                            val text = json.decodeFromJsonElement<ChunkPayload>(payload).text
+                            if (text.isNotEmpty()) {
+                                messageRepository.emitLiveChunk(
+                                    MessageChunk(threadId = threadId, text = text, type = eventType)
+                                )
+                            }
                         }
                     }
 
                     // ── Thread refresh signals ──
                     "dispatch_message", "cmail_message", "cmail_reply" -> {
+                        val threadId = envelope.threadId
                         if (threadId.isNotBlank()) {
                             messageRepository.emitThreadRefresh(threadId)
                         }
