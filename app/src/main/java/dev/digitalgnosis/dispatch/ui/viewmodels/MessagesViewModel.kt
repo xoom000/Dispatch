@@ -348,36 +348,48 @@ class MessagesViewModel @Inject constructor(
 
     /**
      * Create a streaming Flow via the Anthropic Sessions API bridge.
-     * Creates a new session (or reuses existing) and subscribes to SSE events.
+     *
+     * First message: creates a new session (includes the prompt).
+     * Follow-ups: sends events to the existing session.
+     *
+     * Polls GET /events?after_id=X for the response. The events endpoint
+     * returns JSON (not SSE), so we poll until we see a result event.
      */
     private fun bridgeStreamFlow(message: String): Flow<StreamEvent> = flow {
-        // Reuse existing bridge session or create a new one
-        val sessionId = _bridgeSessionId ?: sessionsApiClient.createSession(message)
+        val existingSession = _bridgeSessionId
+
+        if (existingSession != null) {
+            // Follow-up message — send event to existing session
+            Timber.i("StreamChat: sending follow-up to session %s", existingSession.take(20))
+
+            // Grab the last event ID before sending so we only poll for new events
+            val beforeEvents = sessionsApiClient.getSessionEvents(existingSession)
+            val lastId = beforeEvents?.lastOrNull()?.optString("uuid")
+
+            val sent = sessionsApiClient.sendEvent(existingSession, message)
+            if (!sent) {
+                // Session may be dead — fall through to create a new one
+                Timber.w("StreamChat: sendEvent failed, creating new session")
+                _bridgeSessionId = null
+            } else {
+                // Poll for response events
+                sessionsApiClient.pollSessionEvents(existingSession, afterId = lastId)
+                    .collect { event -> emit(event) }
+                return@flow
+            }
+        }
+
+        // First message or fallback — create new session with prompt
+        Timber.i("StreamChat: creating new bridge session")
+        val sessionId = sessionsApiClient.createSession(message)
         if (sessionId == null) {
             emit(StreamEvent.Error("session_error", "Failed to create bridge session"))
             return@flow
         }
         _bridgeSessionId = sessionId
 
-        // If reusing session, send the new message as an event
-        if (_bridgeSessionId != null && _bridgeSessionId == sessionId) {
-            val sent = sessionsApiClient.sendEvent(sessionId, message)
-            if (!sent) {
-                // Session may be dead — create a new one
-                val newSessionId = sessionsApiClient.createSession(message) ?: run {
-                    emit(StreamEvent.Error("session_error", "Failed to create new bridge session"))
-                    return@flow
-                }
-                _bridgeSessionId = newSessionId
-            }
-        }
-
-        // Poll for new events by counting what we have
-        val currentEvents = sessionsApiClient.getSessionEvents(sessionId)
-        val eventCountBefore = currentEvents?.size ?: 0
-
-        // Subscribe to the session's SSE event stream
-        sessionsApiClient.subscribeToSession(sessionId).collect { event ->
+        // Poll for response events (skip the user event we just sent)
+        sessionsApiClient.pollSessionEvents(sessionId).collect { event ->
             emit(event)
         }
     }

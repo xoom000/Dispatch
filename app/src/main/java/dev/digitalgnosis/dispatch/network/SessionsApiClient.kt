@@ -9,10 +9,6 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.Response
-import okhttp3.sse.EventSource
-import okhttp3.sse.EventSourceListener
-import okhttp3.sse.EventSources
 import org.json.JSONArray
 import org.json.JSONObject
 import timber.log.Timber
@@ -39,12 +35,6 @@ class SessionsApiClient @Inject constructor(
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
-        .build()
-
-    /** Long-lived client for SSE event subscriptions. */
-    private val sseClient = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(0, TimeUnit.SECONDS)  // SSE: no read timeout
         .build()
 
     // ── Session Lifecycle ────────────────────────────────────────────
@@ -120,173 +110,144 @@ class SessionsApiClient @Inject constructor(
     }
 
     /**
-     * Subscribe to session events via SSE.
-     * Returns a Flow of StreamEvent that emits as the agent works.
-     * Uses the same StreamEvent sealed class as the File Bridge streaming.
+     * Poll for session events and emit them as a Flow of StreamEvent.
+     *
+     * The Sessions API events endpoint returns JSON (not SSE).
+     * We poll with after_id to get incremental updates, and check
+     * session status to know when the agent is done.
+     *
+     * @param afterId Start polling after this event ID (null = all events)
+     * @param pollIntervalMs How often to poll (default 1s)
      */
-    fun subscribeToSession(sessionId: String): Flow<StreamEvent> = callbackFlow {
-        val url = "${AnthropicAuthManager.BASE_URL}/v1/sessions/$sessionId/events"
-        val request = buildRequest(url)
-            .addHeader("Accept", "text/event-stream")
-            .get()
-            .build()
+    fun pollSessionEvents(
+        sessionId: String,
+        afterId: String? = null,
+        pollIntervalMs: Long = 1000L,
+    ): Flow<StreamEvent> = callbackFlow {
+        var lastEventId = afterId
+        var running = true
 
-        val factory = EventSources.createFactory(sseClient)
-        val eventSource = factory.newEventSource(request, object : EventSourceListener() {
-            override fun onOpen(eventSource: EventSource, response: Response) {
-                Timber.i("SessionsAPI: SSE connected to session %s (status=%d)",
-                    sessionId.take(20), response.code)
-                trySend(StreamEvent.Connected(
-                    streamId = sessionId,
-                    department = "",
-                ))
+        trySend(StreamEvent.Connected(streamId = sessionId, department = ""))
+
+        while (running) {
+            try {
+                val path = buildString {
+                    append("/v1/sessions/$sessionId/events")
+                    if (lastEventId != null) append("?after_id=$lastEventId")
+                }
+                val body = executeGet(path)
+                if (body != null) {
+                    val json = JSONObject(body)
+                    val data = json.optJSONArray("data")
+
+                    if (data != null && data.length() > 0) {
+                        for (i in 0 until data.length()) {
+                            val ev = data.optJSONObject(i) ?: continue
+                            lastEventId = ev.optString("uuid", lastEventId)
+                            val events = parseSessionEvent(ev, sessionId)
+                            for (event in events) {
+                                trySend(event)
+                                if (event is StreamEvent.Done || event is StreamEvent.Error) {
+                                    running = false
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Check session status — if idle, agent is done
+                if (running) {
+                    val status = getSessionStatus(sessionId)
+                    if (status == "idle" && lastEventId != afterId) {
+                        // Session went idle after we started — might be done
+                        // Do one more poll to catch final events
+                        Thread.sleep(pollIntervalMs)
+                        continue
+                    }
+                    Thread.sleep(pollIntervalMs)
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "SessionsAPI: poll error for %s", sessionId.take(20))
+                trySend(StreamEvent.Error("poll_error", e.message ?: "Poll failed"))
+                running = false
             }
+        }
 
-            override fun onEvent(
-                eventSource: EventSource,
-                id: String?,
-                type: String?,
-                data: String,
-            ) {
-                try {
-                    val json = JSONObject(data)
-                    val eventType = type ?: json.optString("type", "")
+        channel.close()
+        awaitClose { running = false }
+    }
 
-                    // Parse stream-json events — same format as our File Bridge relay
-                    val event: StreamEvent? = when {
-                        eventType == "content_block_delta" || hasNestedType(json, "content_block_delta") -> {
-                            val delta = json.optJSONObject("delta")
-                                ?: json.optJSONObject("event")?.optJSONObject("delta")
-                            when (delta?.optString("type")) {
-                                "text_delta" -> StreamEvent.Token(delta.optString("text", ""))
-                                "thinking_delta" -> StreamEvent.Thinking(delta.optString("thinking", ""))
-                                else -> null
+    /** Get the current session status (pending, running, idle). */
+    fun getSessionStatus(sessionId: String): String? {
+        val body = executeGet("/v1/sessions/$sessionId") ?: return null
+        return try {
+            JSONObject(body).optString("session_status", null)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Parse a single session event JSON into StreamEvent(s).
+     * Session events use the JSONL format: type, uuid, message/content, etc.
+     */
+    private fun parseSessionEvent(ev: JSONObject, sessionId: String): List<StreamEvent> {
+        val type = ev.optString("type", "")
+        val results = mutableListOf<StreamEvent>()
+
+        when (type) {
+            "assistant" -> {
+                val msg = ev.optJSONObject("message")
+                if (msg != null) {
+                    val contentArr = msg.optJSONArray("content")
+                    if (contentArr != null) {
+                        val text = StringBuilder()
+                        for (i in 0 until contentArr.length()) {
+                            val block = contentArr.optJSONObject(i) ?: continue
+                            if (block.optString("type") == "text") {
+                                text.append(block.optString("text", ""))
                             }
                         }
-
-                        eventType == "content_block_start" || hasNestedType(json, "content_block_start") -> {
-                            val block = json.optJSONObject("content_block")
-                                ?: json.optJSONObject("event")?.optJSONObject("content_block")
-                            if (block?.optString("type") == "tool_use") {
-                                StreamEvent.Tool(
-                                    name = block.optString("name", ""),
-                                    status = "started",
-                                    toolUseId = block.optString("id", ""),
-                                )
-                            } else null
+                        if (text.isNotBlank()) {
+                            results.add(StreamEvent.AssistantText(text.toString()))
                         }
-
-                        eventType == "assistant" -> {
-                            val msg = json.optJSONObject("message") ?: json
-                            val content = msg.optJSONArray("content")
-                            var text = ""
-                            if (content != null) {
-                                for (i in 0 until content.length()) {
-                                    val block = content.optJSONObject(i)
-                                    if (block?.optString("type") == "text") {
-                                        text += block.optString("text", "")
-                                    }
-                                }
-                            }
-                            if (text.isNotBlank()) StreamEvent.AssistantText(text) else null
-                        }
-
-                        eventType.startsWith("result") -> {
-                            if (eventType.contains("error")) {
-                                StreamEvent.Error(
-                                    errorType = eventType,
-                                    result = json.optString("result", ""),
-                                )
-                            } else {
-                                StreamEvent.Done(
-                                    result = json.optString("result", ""),
-                                    costUsd = json.optDouble("total_cost_usd", 0.0),
-                                    durationMs = json.optLong("duration_ms", 0),
-                                    sessionId = json.optString("session_id", sessionId),
-                                    stopReason = json.optString("stop_reason", ""),
-                                )
-                            }
-                        }
-
-                        eventType == "tool_progress" -> {
-                            StreamEvent.Tool(
-                                name = json.optString("tool_name", ""),
-                                status = "progress",
-                            )
-                        }
-
-                        eventType.startsWith("system/") -> {
-                            StreamEvent.Status(
-                                status = json.optString("status", eventType),
-                                model = json.optString("model", ""),
-                                sessionId = json.optString("session_id", ""),
-                            )
-                        }
-
-                        // stream_event wrapper — unwrap and recurse
-                        eventType == "stream_event" -> {
-                            val inner = json.optJSONObject("event")
-                            if (inner != null) {
-                                // Re-parse the inner event
-                                val innerType = inner.optString("type", "")
-                                when {
-                                    innerType == "content_block_delta" -> {
-                                        val delta = inner.optJSONObject("delta")
-                                        when (delta?.optString("type")) {
-                                            "text_delta" -> StreamEvent.Token(delta.optString("text", ""))
-                                            "thinking_delta" -> StreamEvent.Thinking(delta.optString("thinking", ""))
-                                            else -> null
-                                        }
-                                    }
-                                    innerType == "content_block_start" -> {
-                                        val block = inner.optJSONObject("content_block")
-                                        if (block?.optString("type") == "tool_use") {
-                                            StreamEvent.Tool(
-                                                name = block.optString("name", ""),
-                                                status = "started",
-                                            )
-                                        } else null
-                                    }
-                                    else -> null
-                                }
-                            } else null
-                        }
-
-                        else -> null
                     }
-
-                    if (event != null) {
-                        trySend(event)
-                    }
-                } catch (e: Exception) {
-                    Timber.w(e, "SessionsAPI: failed to parse SSE event type=%s", type)
                 }
             }
 
-            override fun onClosed(eventSource: EventSource) {
-                Timber.i("SessionsAPI: SSE closed for %s", sessionId.take(20))
-                channel.close()
+            "result" -> {
+                val subtype = ev.optString("subtype", "")
+                if (subtype.contains("error")) {
+                    results.add(StreamEvent.Error(
+                        errorType = "result/$subtype",
+                        result = ev.optString("result", ""),
+                    ))
+                } else {
+                    results.add(StreamEvent.Done(
+                        result = ev.optString("result", ""),
+                        costUsd = ev.optDouble("total_cost_usd", 0.0),
+                        durationMs = ev.optLong("duration_ms", 0),
+                        sessionId = ev.optString("session_id", sessionId),
+                        stopReason = ev.optString("stop_reason", ""),
+                    ))
+                }
             }
 
-            override fun onFailure(
-                eventSource: EventSource,
-                t: Throwable?,
-                response: Response?,
-            ) {
-                Timber.e(t, "SessionsAPI: SSE failed for %s (code=%d)",
-                    sessionId.take(20), response?.code ?: -1)
-                trySend(StreamEvent.Error(
-                    errorType = "connection_error",
-                    result = t?.message ?: "SSE failed (code=${response?.code})",
-                ))
-                channel.close()
+            "system" -> {
+                val subtype = ev.optString("subtype", "")
+                if (subtype == "init") {
+                    results.add(StreamEvent.Status(
+                        status = "init",
+                        model = ev.optString("model", ""),
+                        sessionId = ev.optString("session_id", ""),
+                    ))
+                }
             }
-        })
 
-        awaitClose {
-            Timber.i("SessionsAPI: cancelling SSE for %s", sessionId.take(20))
-            eventSource.cancel()
+            // Skip: user, rate_limit_event, hook events
         }
+
+        return results
     }
 
     /**
