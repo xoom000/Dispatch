@@ -8,10 +8,10 @@ import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import timber.log.Timber
 import java.io.File
-import java.net.HttpURLConnection
-import java.net.URL
 
 /**
  * Checks for app updates from GitHub releases and handles APK download/installation.
@@ -24,6 +24,7 @@ class UpdateChecker(
     private val context: Context,
     private val githubUsername: String = GITHUB_USERNAME,
     private val repoName: String = REPO_NAME,
+    private val okHttpClient: OkHttpClient = OkHttpClient(),
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -88,16 +89,15 @@ class UpdateChecker(
 
             val apkFile = File(context.cacheDir, "update-${updateInfo.versionName}.apk")
 
-            val url = URL(updateInfo.downloadUrl)
-            val connection = url.openConnection() as HttpURLConnection
-            connection.setRequestProperty("Accept", "application/octet-stream")
+            val request = Request.Builder()
+                .url(updateInfo.downloadUrl)
+                .header("Accept", "application/octet-stream")
+                .build()
 
-            connection.inputStream.use { input ->
-                apkFile.outputStream().use { output ->
-                    input.copyTo(output)
-                }
+            okHttpClient.newCall(request).execute().use { response ->
+                val body = checkNotNull(response.body) { "Empty response body for APK download" }
+                apkFile.outputStream().use { out -> body.byteStream().copyTo(out) }
             }
-            connection.disconnect()
 
             Timber.d("UpdateChecker: APK downloaded to %s (%d bytes)",
                 apkFile.absolutePath, apkFile.length())
@@ -126,20 +126,20 @@ class UpdateChecker(
 
     private fun fetchLatestRelease(): GitHubRelease? {
         return try {
-            val url = URL("https://api.github.com/repos/$githubUsername/$repoName/releases/latest")
-            val connection = url.openConnection() as HttpURLConnection
-            connection.setRequestProperty("Accept", "application/vnd.github+json")
-            connection.setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
+            val request = Request.Builder()
+                .url("https://api.github.com/repos/$githubUsername/$repoName/releases/latest")
+                .header("Accept", "application/vnd.github+json")
+                .header("X-GitHub-Api-Version", "2022-11-28")
+                .build()
 
-            if (connection.responseCode != 200) {
-                Timber.w("UpdateChecker: GitHub API returned %d", connection.responseCode)
-                connection.disconnect()
-                return null
+            okHttpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    Timber.w("UpdateChecker: GitHub API returned %d", response.code)
+                    return null
+                }
+                val body = checkNotNull(response.body) { "Empty response from GitHub API" }
+                json.decodeFromString<GitHubRelease>(body.string())
             }
-
-            val responseBody = connection.inputStream.bufferedReader().use { it.readText() }
-            connection.disconnect()
-            json.decodeFromString<GitHubRelease>(responseBody)
         } catch (e: Exception) {
             Timber.e(e, "UpdateChecker: failed to fetch GitHub release")
             null

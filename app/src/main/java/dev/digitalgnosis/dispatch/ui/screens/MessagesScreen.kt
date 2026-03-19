@@ -1,6 +1,7 @@
 package dev.digitalgnosis.dispatch.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -68,13 +69,16 @@ fun MessagesScreen(
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         // Custom Header
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF1E1F20))
+                .padding(horizontal = 4.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
             }
-            AgentAvatar(name = department, size = 36.dp)
+            AgentAvatar(name = department, size = 40.dp)
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = department,
@@ -89,7 +93,7 @@ fun MessagesScreen(
         LazyColumn(
             modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
             state = listState,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             item { Spacer(modifier = Modifier.height(8.dp)) }
             items(bubbles) { bubble ->
@@ -136,9 +140,10 @@ fun MessagesScreen(
             }
 
             Surface(
-                modifier = Modifier.weight(1f),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(28.dp)
+                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                color = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(24.dp),
+                border = BorderStroke(1.dp, Color(0xFF444746))
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
@@ -168,22 +173,19 @@ fun MessagesScreen(
             Spacer(modifier = Modifier.width(8.dp))
 
             val isTextBlank = replyText.isBlank()
-            FloatingActionButton(
+            IconButton(
                 onClick = {
                     if (!isTextBlank) {
                         viewModel.sendMessage(department, replyText)
                         replyText = ""
                     }
                 },
-                shape = CircleShape,
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(48.dp),
-                elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp)
+                modifier = Modifier.size(48.dp)
             ) {
                 Icon(
                     imageVector = if (isTextBlank) Icons.Default.Mic else Icons.AutoMirrored.Filled.Send,
-                    contentDescription = "Send"
+                    contentDescription = "Send",
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
         }
@@ -199,18 +201,18 @@ private fun NigelBubble(bubble: ChatBubble) {
         horizontalAlignment = Alignment.End
     ) {
         Surface(
-            color = Color(0xFF004D40),
+            color = Color(0xFF0842A0),
             shape = RoundedCornerShape(
-                topStart = 18.dp, topEnd = 18.dp,
-                bottomStart = 18.dp, bottomEnd = 4.dp
+                topStart = 20.dp, topEnd = 20.dp,
+                bottomStart = 20.dp, bottomEnd = 4.dp
             ),
-            modifier = Modifier.widthIn(max = 280.dp)
+            modifier = Modifier.widthIn(max = 360.dp)
         ) {
-            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
                 Text(
                     text = bubble.text,
                     style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
-                    color = Color.White
+                    color = Color(0xFFD3E3FD)
                 )
             }
         }
@@ -232,18 +234,18 @@ private fun AgentBubble(bubble: ChatBubble) {
         horizontalAlignment = Alignment.Start
     ) {
         Surface(
-            color = MaterialTheme.colorScheme.surfaceVariant,
+            color = Color(0xFF282A2C),
             shape = RoundedCornerShape(
-                topStart = 18.dp, topEnd = 18.dp,
-                bottomStart = 4.dp, bottomEnd = 18.dp
+                topStart = 20.dp, topEnd = 20.dp,
+                bottomStart = 4.dp, bottomEnd = 20.dp
             ),
-            modifier = Modifier.widthIn(max = 280.dp)
+            modifier = Modifier.widthIn(max = 360.dp)
         ) {
-            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
                 Text(
                     text = bubble.text,
                     style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = Color(0xFFE3E3E3)
                 )
             }
         }
@@ -380,14 +382,14 @@ private fun StreamingBubble(text: String, toolStatus: String?) {
 
         // Streaming text bubble
         Surface(
-            color = MaterialTheme.colorScheme.surfaceVariant,
+            color = Color(0xFF282A2C),
             shape = RoundedCornerShape(
-                topStart = 18.dp, topEnd = 18.dp,
-                bottomStart = 4.dp, bottomEnd = 18.dp
+                topStart = 20.dp, topEnd = 20.dp,
+                bottomStart = 4.dp, bottomEnd = 20.dp
             ),
-            modifier = Modifier.widthIn(max = 300.dp)
+            modifier = Modifier.widthIn(max = 360.dp)
         ) {
-            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
                 if (text.isBlank()) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator(
@@ -398,14 +400,14 @@ private fun StreamingBubble(text: String, toolStatus: String?) {
                         Text(
                             text = "Thinking...",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            color = Color(0xFFE3E3E3).copy(alpha = 0.7f)
                         )
                     }
                 } else {
                     Text(
                         text = text,
                         style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = Color(0xFFE3E3E3)
                     )
                 }
             }

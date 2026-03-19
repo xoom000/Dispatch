@@ -53,7 +53,7 @@ fun ChatScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "Google Messages",
+                        "Dispatch",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Normal,
                             fontSize = 22.sp
@@ -87,8 +87,9 @@ fun ChatScreen(
                 onClick = onComposeNew,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 16.dp),
-                shape = RoundedCornerShape(16.dp),
+                    .padding(end = 24.dp, bottom = 24.dp),
+                shape = RoundedCornerShape(28.dp),
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp),
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             ) {
@@ -116,11 +117,12 @@ private fun SessionRow(session: SessionInfo, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 80.dp)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(start = 16.dp, end = 24.dp, top = 12.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AgentAvatar(name = session.department, size = 48.dp)
+        AgentAvatar(name = session.department, size = 52.dp)
 
         Spacer(modifier = Modifier.width(16.dp))
 

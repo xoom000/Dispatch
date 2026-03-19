@@ -5,15 +5,30 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Cyan,
-    secondary = CyanDark,
+    primary = Primary,
+    onPrimary = OnPrimary,
+    primaryContainer = PrimaryContainer,
+    onPrimaryContainer = OnPrimaryContainer,
+    secondary = Secondary,
+    secondaryContainer = SecondaryContainer,
+    tertiary = Tertiary,
+    tertiaryContainer = TertiaryContainer,
+    error = Error,
+    errorContainer = ErrorContainer,
     background = Surface,
-    surface = Surface,
-    surfaceVariant = SurfaceVariant,
     onBackground = OnSurface,
+    surface = Surface,
+    surfaceDim = SurfaceDim,
+    surfaceBright = SurfaceBright,
+    surfaceContainerLowest = SurfaceContainerLowest,
+    surfaceContainerLow = SurfaceContainerLow,
+    surfaceContainer = SurfaceContainer,
+    surfaceContainerHigh = SurfaceContainerHigh,
+    surfaceContainerHighest = SurfaceContainerHighest,
     onSurface = OnSurface,
     onSurfaceVariant = OnSurfaceVariant,
-    onPrimary = Surface
+    outline = Outline,
+    outlineVariant = OutlineVariant,
 )
 
 @Composable
