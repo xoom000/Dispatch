@@ -100,9 +100,9 @@ fun MessagesScreen(
         }
     }
 
-    // imePadding belongs on InputBar, NOT here. Putting it on the Column
-    // causes a gap between keyboard and input bar. This was the root cause
-    // of 9 failed fix attempts. See: 2026-03-20-messages-screen-fix-plan.md
+    // Google Messages pattern: header + list + input in one vertical stack.
+    // List gets weight(1f), InputBar wraps content. adjustResize in manifest.
+    // imePadding on InputBar only (Jetchat pattern). See: messages-screen-fix-plan.md
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -111,16 +111,17 @@ fun MessagesScreen(
     ) {
         ConversationHeader(department = department, onBack = onBack)
 
-        // Message List in a Box so JumpToBottom can overlay it
+        // Message list + overlays. weight(1f) = fills all space above InputBar.
+        // InputBar sits directly below — they're attached, same as Google Messages.
         Box(modifier = Modifier.weight(1f)) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),
                 state = listState,
+                contentPadding = PaddingValues(top = 8.dp, bottom = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                item { Spacer(modifier = Modifier.height(8.dp)) }
 
                 // Sender-run grouping: compare adjacent bubbles
                 val chatBubbles = bubbles
@@ -204,7 +205,6 @@ fun MessagesScreen(
                 if (isSending && !isStreaming) {
                     item { SendingIndicator() }
                 }
-                item { Spacer(modifier = Modifier.height(16.dp)) }
             }
 
             JumpToBottom(
