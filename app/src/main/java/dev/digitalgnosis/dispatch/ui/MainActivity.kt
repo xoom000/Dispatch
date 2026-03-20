@@ -38,8 +38,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // GAP-S2: Prevent screenshots, screen recording, and Recent Apps thumbnails
-        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        // GAP-S2: Prevent screenshots — DISABLED during development so Nigel can send screenshots
+        // TODO: Re-enable before production: window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         // GAP-S3: Prevent tap-jacking via malicious overlay apps
         window.decorView.filterTouchesWhenObscured = true
         enableEdgeToEdge()
