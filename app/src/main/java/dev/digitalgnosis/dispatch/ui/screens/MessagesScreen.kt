@@ -9,13 +9,13 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import dev.digitalgnosis.dispatch.ui.components.ConversationHeader
 import dev.digitalgnosis.dispatch.ui.components.DateSeparator
 import dev.digitalgnosis.dispatch.ui.components.InputBar
 import dev.digitalgnosis.dispatch.ui.components.JumpToBottom
-import dev.digitalgnosis.dispatch.ui.components.MatrixRainBackground
 import dev.digitalgnosis.dispatch.ui.components.TypingIndicator
 import dev.digitalgnosis.dispatch.ui.components.bubbles.AgentBubble
 import dev.digitalgnosis.dispatch.ui.components.bubbles.DispatchBubble
@@ -91,6 +91,20 @@ fun MessagesScreen(
         }
     }
 
+    // Keyboard scroll: when IME opens (layout height shrinks), scroll to bottom
+    val layoutInfo = listState.layoutInfo
+    val previousHeight = remember { mutableIntStateOf(0) }
+    LaunchedEffect(layoutInfo.viewportEndOffset) {
+        val currentHeight = layoutInfo.viewportEndOffset
+        if (previousHeight.intValue > 0 && currentHeight < previousHeight.intValue) {
+            // Viewport shrank — keyboard likely opened. Scroll to bottom.
+            if (bubbles.isNotEmpty()) {
+                listState.animateScrollToItem(bubbles.size - 1)
+            }
+        }
+        previousHeight.intValue = currentHeight
+    }
+
     // JumpToBottom visibility: show when last item is not visible
     val jumpToBottomEnabled by remember {
         derivedStateOf {
@@ -113,7 +127,6 @@ fun MessagesScreen(
 
         // Message List in a Box so JumpToBottom can overlay it
         Box(modifier = Modifier.weight(1f)) {
-            MatrixRainBackground()
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()

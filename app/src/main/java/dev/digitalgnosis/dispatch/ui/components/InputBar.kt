@@ -46,7 +46,7 @@ fun InputBar(
         label = "inputPillBorderColor"
     )
     val glowRadius by animateDpAsState(
-        targetValue = if (isFocused) 8.dp else 0.dp,
+        targetValue = if (isFocused) 3.dp else 0.dp,
         animationSpec = tween(durationMillis = 250),
         label = "inputPillGlowRadius"
     )
@@ -82,7 +82,7 @@ fun InputBar(
                 TextField(
                     value = value,
                     onValueChange = onValueChange,
-                    placeholder = { Text("RCS message", style = MaterialTheme.typography.bodyLarge) },
+                    placeholder = { Text("Message", style = MaterialTheme.typography.bodyLarge) },
                     modifier = Modifier
                         .weight(1f)
                         .onFocusChanged { isFocused = it.isFocused },
@@ -131,7 +131,7 @@ private fun Modifier.neonGlow(color: Color, glowRadius: Dp, cornerRadius: Dp): M
                         glowRadius.toPx(),
                         0f,
                         0f,
-                        color.copy(alpha = 0.7f).toArgb()
+                        color.copy(alpha = 0.25f).toArgb()
                     )
                 }
             }
