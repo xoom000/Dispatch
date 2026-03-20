@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AppFunctionAppMetadata
+    xmlns:appfn="http://schemas.android.com/apk/res-auto"
+    appfn:description="Dispatch is a voice dispatch messaging app for field operations. It supports sending and reading messages across departments, checking agent session status, and monitoring message delivery."
+    appfn:displayDescription="Send field dispatches, check department inboxes, and monitor agent sessions through Dispatch." />

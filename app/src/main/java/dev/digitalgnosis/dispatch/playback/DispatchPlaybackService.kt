@@ -225,6 +225,38 @@ class DispatchPlaybackService : MediaSessionService() {
             return START_STICKY
         }
 
+        // Batch action: multiple streaming sentences arrive in one intent.
+        // StreamingTtsQueue coalesces rapid sentence arrivals before the OS schedules
+        // the next service start, so a 5-sentence response may arrive as 1–3 intents
+        // instead of 5 separate startForegroundService calls.
+        if (intent?.action == ACTION_ENQUEUE_BATCH) {
+            val sentences = intent.getStringArrayListExtra(EXTRA_SENTENCES) ?: return START_STICKY
+            val voice = intent.getStringExtra(EXTRA_VOICE) ?: return START_STICKY
+            val sender = intent.getStringExtra(EXTRA_SENDER) ?: "unknown"
+
+            if (sentences.isEmpty()) return START_STICKY
+
+            val count = pendingCount.addAndGet(sentences.size)
+            startForeground(NOTIFICATION_ID, buildDownloadNotification("Streaming from $sender..."))
+
+            Timber.i("DispatchPlaybackService: batch enqueue %d sentence(s), pending=%d", sentences.size, count)
+
+            // Auto-resume if stalled (not user-paused)
+            player?.let { p ->
+                if (!p.isPlaying && p.playbackState == Player.STATE_READY && !userPaused) {
+                    Timber.i("DispatchPlaybackService: stale pause detected — auto-resuming")
+                    p.play()
+                }
+            }
+
+            sentences.forEach { text ->
+                if (text.isNotBlank()) {
+                    queueStreamingItem(text, voice, sender, traceId = null, fcmReceiveTime = 0L)
+                }
+            }
+            return START_STICKY
+        }
+
         val text = intent?.getStringExtra(EXTRA_TEXT)
         val voice = intent?.getStringExtra(EXTRA_VOICE)
         val sender = intent?.getStringExtra(EXTRA_SENDER) ?: "unknown"
@@ -635,12 +667,17 @@ class DispatchPlaybackService : MediaSessionService() {
         /** Intent action sent by StreamingTtsQueue.cancel() to drain queued sentences. */
         const val ACTION_CANCEL_STREAMING = "dev.digitalgnosis.dispatch.CANCEL_STREAMING"
 
+        /** Intent action sent by StreamingTtsQueue to enqueue a batch of sentences at once. */
+        const val ACTION_ENQUEUE_BATCH = "dev.digitalgnosis.dispatch.ENQUEUE_BATCH"
+
         const val EXTRA_TEXT = "text"
         const val EXTRA_VOICE = "voice"
         const val EXTRA_SENDER = "sender"
         const val EXTRA_MESSAGE = "message"
         const val EXTRA_TRACE_ID = "trace_id"
         const val EXTRA_FCM_RECEIVE_TIME = "fcm_receive_time"
+        /** ArrayList<String> of sentence texts for ACTION_ENQUEUE_BATCH. */
+        const val EXTRA_SENTENCES = "sentences"
 
         private const val NOTIFICATION_ID = 9002
         private const val DOWNLOAD_CHANNEL_ID = "dispatch_download"
@@ -675,5 +712,22 @@ class DispatchPlaybackService : MediaSessionService() {
             Intent(context, DispatchPlaybackService::class.java).apply {
                 action = ACTION_CANCEL_STREAMING
             }
+
+        /**
+         * Create a batch-enqueue intent carrying multiple sentences in one OS service start.
+         * Used by [StreamingTtsQueue] to replace N individual startForegroundService calls
+         * with a single call carrying all N sentences as an ArrayList extra.
+         */
+        fun createBatchIntent(
+            context: Context,
+            sentences: List<String>,
+            voice: String,
+            sender: String,
+        ): Intent = Intent(context, DispatchPlaybackService::class.java).apply {
+            action = ACTION_ENQUEUE_BATCH
+            putExtra(EXTRA_VOICE, voice)
+            putExtra(EXTRA_SENDER, sender)
+            putStringArrayListExtra(EXTRA_SENTENCES, ArrayList(sentences))
+        }
     }
 }

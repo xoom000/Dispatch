@@ -42,6 +42,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Dispatch">
 
+        <!-- AppFunctions: natural-language description of this app for AI agents -->
+        <property
+            android:name="android.app.appfunctions.app_metadata"
+            android:resource="@xml/app_metadata" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="dev.digitalgnosis.dispatch.fileprovider"
@@ -105,6 +110,20 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+
+        <!--
+            AppFunctions: KSP-generated service that routes platform invocations to
+            DispatchAppFunctions. android:permission restricts binding to the system only —
+            never omit this attribute.
+        -->
+        <service
+            android:name=".appfunctions.AppFunctionServiceImpl"
+            android:exported="false"
+            android:permission="android.permission.BIND_APP_FUNCTION_SERVICE">
+            <intent-filter>
+                <action android:name="android.app.appfunctions.AppFunctionService" />
+            </intent-filter>
+        </service>
 
     </application>
 
