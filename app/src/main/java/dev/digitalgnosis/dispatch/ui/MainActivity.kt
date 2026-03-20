@@ -1,9 +1,7 @@
 package dev.digitalgnosis.dispatch.ui
 
 import android.Manifest
-import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
@@ -11,37 +9,20 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountTree
-import androidx.compose.material.icons.filled.BugReport
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
-import dev.digitalgnosis.dispatch.config.TailscaleConfig
 import dagger.hilt.android.AndroidEntryPoint
 import dev.digitalgnosis.dispatch.config.TokenManager
 import dev.digitalgnosis.dispatch.network.SseConnectionService
 import dev.digitalgnosis.dispatch.tts.ModelManager
 import dev.digitalgnosis.dispatch.tts.TtsEngine
-import dev.digitalgnosis.dispatch.ui.navigation.BottomNavBar
-import dev.digitalgnosis.dispatch.ui.navigation.DispatchNavigationRail
-import dev.digitalgnosis.dispatch.ui.navigation.DispatchTab
-import dev.digitalgnosis.dispatch.ui.screens.*
+import dev.digitalgnosis.dispatch.ui.rootnav.RootNavScreen
 import dev.digitalgnosis.dispatch.ui.theme.DispatchTheme
 import dev.digitalgnosis.dispatch.ui.theme.DisplayDimensions
 import dev.digitalgnosis.dispatch.ui.theme.LocalDisplayDimensions
-import dev.digitalgnosis.dispatch.update.UpdateBanner
-import dev.digitalgnosis.dispatch.update.UpdateStateManager
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -65,8 +46,6 @@ class MainActivity : ComponentActivity() {
         requestNotificationPermission()
 
         // Start SSE service from Activity (foreground context) — safe on targetSdk 35+.
-        // NOT started from Application.onCreate() which can run from background contexts
-        // where foreground service starts throw ForegroundServiceStartNotAllowedException.
         SseConnectionService.start(this)
 
         setContent {
@@ -80,7 +59,7 @@ class MainActivity : ComponentActivity() {
                 LocalDisplayDimensions provides displayDimensions
             ) {
                 DispatchTheme {
-                    DispatchApp(
+                    RootNavScreen(
                         tokenManager = tokenManager,
                         modelManager = modelManager,
                         ttsEngine = ttsEngine,
@@ -96,172 +75,6 @@ class MainActivity : ComponentActivity() {
                 != PackageManager.PERMISSION_GRANTED
             ) {
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }
-        }
-    }
-}
-
-
-private data class LiveSessionParams(
-    val department: String,
-    val invokedAt: Long,
-    val sessionId: String? = null,
-)
-
-private data class ConversationParams(
-    val sessionId: String,
-    val department: String,
-)
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DispatchApp(
-    tokenManager: TokenManager,
-    modelManager: ModelManager,
-    ttsEngine: TtsEngine,
-) {
-    val context = LocalContext.current
-    val dims = LocalDisplayDimensions.current
-    val eventRefreshSignal by SseConnectionService.eventFeedRefresh.collectAsState()
-    val whiteboardRefresh by SseConnectionService.whiteboardRefresh.collectAsState()
-    var showLogViewer by rememberSaveable { mutableStateOf(false) }
-
-    // Self-update system — checks GitHub releases on launch
-    val updateManager = viewModel<UpdateStateManager>(
-        factory = object : ViewModelProvider.Factory {
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                @Suppress("UNCHECKED_CAST")
-                return UpdateStateManager(context.applicationContext) as T
-            }
-        }
-    )
-
-    val sendDraft = remember { SendDraft() }
-    var showSettings by rememberSaveable { mutableStateOf(false) }
-    var showCompose by rememberSaveable { mutableStateOf(false) }
-    var liveSessionParams by remember { mutableStateOf<LiveSessionParams?>(null) }
-    var conversationParams by remember { mutableStateOf<ConversationParams?>(null) }
-    var currentTab by rememberSaveable { mutableStateOf(DispatchTab.CHAT.name) }
-    val selectedTab = try { DispatchTab.valueOf(currentTab) } catch (e: Exception) { DispatchTab.CHAT }
-
-    if (showLogViewer) {
-        LogViewerScreen(onBack = { showLogViewer = false })
-        return
-    }
-
-    if (showSettings) {
-        SettingsScreen(
-            modifier = Modifier,
-            tokenManager = tokenManager,
-            modelManager = modelManager,
-            ttsEngine = ttsEngine,
-            onBack = { showSettings = false },
-        )
-        return
-    }
-
-    if (liveSessionParams != null) {
-        LiveSessionScreen(
-            department = liveSessionParams!!.department,
-            invokedAt = liveSessionParams!!.invokedAt,
-            sessionId = liveSessionParams!!.sessionId,
-            onBack = { liveSessionParams = null },
-        )
-        return
-    }
-
-    if (showCompose) {
-        SendScreen(
-            draft = sendDraft,
-            onDismiss = { showCompose = false },
-        )
-        return
-    }
-
-    if (conversationParams != null) {
-        MessagesScreen(
-            threadId = conversationParams!!.sessionId,
-            department = conversationParams!!.department,
-            onBack = { conversationParams = null },
-        )
-        return
-    }
-
-    // Adaptive navigation: use NavigationRail on tablets (>= 600dp), BottomBar on phones
-    val configuration = LocalConfiguration.current
-    val useNavigationRail = configuration.screenWidthDp >= 600
-
-    val topBar: @Composable () -> Unit = {
-        TopAppBar(
-            title = { Text("Dispatch") },
-            actions = {
-                IconButton(onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(TailscaleConfig.SANDBOX_URL))
-                    context.startActivity(intent)
-                }) {
-                    Icon(Icons.Default.AccountTree, contentDescription = "Sandbox")
-                }
-                IconButton(onClick = { showSettings = true }) {
-                    Icon(Icons.Default.Settings, contentDescription = "Settings")
-                }
-                IconButton(onClick = { showLogViewer = true }) {
-                    Icon(Icons.Default.BugReport, contentDescription = "Logs")
-                }
-            }
-        )
-    }
-
-    val screenContent: @Composable (Modifier) -> Unit = { screenModifier ->
-        Column {
-            UpdateBanner(updateManager)
-            when (selectedTab) {
-                DispatchTab.CHAT -> ChatScreen(
-                    modifier = screenModifier,
-                    onComposeNew = { showCompose = true },
-                    onOpenConversation = { sid, dept ->
-                        conversationParams = ConversationParams(sid, dept)
-                    },
-                )
-                DispatchTab.PULSE -> PulseScreen(
-                    modifier = screenModifier,
-                    refreshSignal = eventRefreshSignal,
-                )
-                DispatchTab.BOARD -> BoardScreen(
-                    modifier = screenModifier,
-                    whiteboardRefresh = whiteboardRefresh,
-                    onNavigateToThread = { currentTab = DispatchTab.CHAT.name },
-                )
-                DispatchTab.GEMINI -> GeminiWorkspaceScreen(
-                    modifier = screenModifier,
-                )
-            }
-        }
-    }
-
-    if (useNavigationRail) {
-        // Tablet layout: NavigationRail on the left, content fills the rest
-        Scaffold(topBar = topBar) { padding ->
-            Row(modifier = Modifier.padding(padding).fillMaxSize()) {
-                DispatchNavigationRail(
-                    currentTab = selectedTab,
-                    onTabSelected = { currentTab = it.name },
-                )
-                screenContent(Modifier.weight(1f).fillMaxHeight())
-            }
-        }
-    } else {
-        // Phone layout: BottomNavBar below content
-        Scaffold(
-            topBar = topBar,
-            bottomBar = {
-                BottomNavBar(
-                    currentTab = selectedTab,
-                    onTabSelected = { currentTab = it.name },
-                )
-            },
-        ) { padding ->
-            Box(modifier = Modifier.padding(padding).fillMaxSize()) {
-                screenContent(Modifier.fillMaxSize())
             }
         }
     }
