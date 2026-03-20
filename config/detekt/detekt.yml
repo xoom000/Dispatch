@@ -2,7 +2,7 @@
 # Runs on every build — catches code smells, complexity, style issues
 
 build:
-  maxIssues: 100  # Lenient during initial adoption — tighten to 0 after baseline cleanup
+  maxIssues: 0  # Enforced — all pre-existing issues are captured in baseline.xml
   excludeCorrectable: false
 
 complexity:

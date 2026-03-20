@@ -74,6 +74,7 @@ fun MessagesScreen(
     val playingSequence by viewModel.playingSequence.collectAsState()
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
     var replyText by rememberSaveable { mutableStateOf("") }
 
     LaunchedEffect(threadId) {
@@ -164,6 +165,7 @@ fun MessagesScreen(
                             topPadding = topPadding,
                             isFirstInRun = isFirstInRun,
                             isLastInRun = isLastInRun,
+                            snackbarHostState = snackbarHostState,
                         )
                         "agent" -> AgentBubble(
                             bubble = bubble,
@@ -172,6 +174,7 @@ fun MessagesScreen(
                             isFirstInRun = isFirstInRun,
                             isLastInRun = isLastInRun,
                             department = department,
+                            snackbarHostState = snackbarHostState,
                         )
                         "dispatch" -> DispatchBubble(
                             bubble = bubble,
@@ -192,6 +195,7 @@ fun MessagesScreen(
                             isFirstInRun = isFirstInRun,
                             isLastInRun = isLastInRun,
                             department = department,
+                            snackbarHostState = snackbarHostState,
                         )
                     }
                 }
@@ -226,6 +230,11 @@ fun MessagesScreen(
                     }
                 },
                 modifier = Modifier.align(Alignment.BottomCenter)
+            )
+
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
 

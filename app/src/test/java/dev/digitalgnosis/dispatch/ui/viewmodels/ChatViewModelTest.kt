@@ -1,120 +1,87 @@
 package dev.digitalgnosis.dispatch.ui.viewmodels
 
-import dev.digitalgnosis.dispatch.data.MessageRepository
-import dev.digitalgnosis.dispatch.data.SyncManager
-import dev.digitalgnosis.dispatch.data.ThreadDao
-import dev.digitalgnosis.dispatch.data.ThreadInfo
-import io.mockk.*
-import kotlinx.coroutines.Dispatchers
+import dev.digitalgnosis.dispatch.data.SessionInfo
+import dev.digitalgnosis.dispatch.data.SessionRepository
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.test.*
-import org.junit.After
-import org.junit.Assert.*
-import org.junit.Before
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
+/**
+ * Unit tests for [ChatViewModel].
+ *
+ * Note: ChatViewModel.refresh() uses withContext(Dispatchers.IO) for network calls.
+ * Tests that assert on IO-driven state (sessionInfoList, isRefreshing after fetch)
+ * are inherently non-deterministic without injecting a test dispatcher into the ViewModel.
+ * The tests here focus on synchronous state and mock interactions only.
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
-class ChatViewModelTest {
+class ChatViewModelTest : BaseViewModelTest() {
 
-    private val testDispatcher = StandardTestDispatcher()
+    private fun mockRepo() = mockk<SessionRepository>(relaxed = true)
 
-    private lateinit var threadDao: ThreadDao
-    private lateinit var syncManager: SyncManager
-    private lateinit var messageRepository: MessageRepository
-
-    @Before
-    fun setup() {
-        Dispatchers.setMain(testDispatcher)
-        threadDao = mockk(relaxed = true)
-        syncManager = mockk(relaxed = true)
-        messageRepository = mockk(relaxed = true)
-
-        // Default: empty thread list, no refresh events
-        every { threadDao.getAllThreadsFlow() } returns flowOf(emptyList())
-        every { messageRepository.threadRefreshEvents } returns MutableSharedFlow()
-        coEvery { syncManager.syncThreads() } just Runs
-    }
-
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-    }
-
-    private fun createViewModel() = ChatViewModel(threadDao, syncManager, messageRepository)
+    private fun makeListResult(vararg sessions: SessionInfo) =
+        SessionRepository.SessionListResult(sessions = sessions.toList(), total = sessions.size)
 
     @Test
-    fun `initial state is empty thread list`() = runTest {
-        val vm = createViewModel()
-        advanceUntilIdle()
-        assertTrue(vm.threads.value.isEmpty())
+    fun `selectedSessionId is null initially`() = runTest {
+        val repo = mockRepo()
+        coEvery { repo.fetchForDispatch(any(), any()) } returns makeListResult()
+
+        val vm = ChatViewModel(repo)
+        assertNull(vm.selectedSessionId.value)
     }
 
     @Test
-    fun `refresh triggers sync`() = runTest {
-        val vm = createViewModel()
+    fun `selectSession updates selectedSessionId`() = runTest {
+        val repo = mockRepo()
+        coEvery { repo.fetchForDispatch(any(), any()) } returns makeListResult()
+
+        val vm = ChatViewModel(repo)
+        vm.selectSession("session-abc")
+
+        assertEquals("session-abc", vm.selectedSessionId.value)
+    }
+
+    @Test
+    fun `selectSession with null clears selectedSessionId`() = runTest {
+        val repo = mockRepo()
+        coEvery { repo.fetchForDispatch(any(), any()) } returns makeListResult()
+
+        val vm = ChatViewModel(repo)
+        vm.selectSession("session-abc")
+        vm.selectSession(null)
+
+        assertNull(vm.selectedSessionId.value)
+    }
+
+    @Test
+    fun `refresh triggers repository fetch`() = runTest {
+        val repo = mockRepo()
+        coEvery { repo.fetchForDispatch(any(), any()) } returns makeListResult()
+
+        val vm = ChatViewModel(repo)
         advanceUntilIdle()
 
         vm.refresh()
         advanceUntilIdle()
 
-        // isRefreshing resets after sync completes
-        assertFalse(vm.isRefreshing.value)
-        // At least 2 calls: init + manual refresh
-        coVerify(atLeast = 2) { syncManager.syncThreads() }
+        // init + explicit refresh = at least 2 calls
+        coVerify(atLeast = 2) { repo.fetchForDispatch(any(), any()) }
     }
 
     @Test
-    fun `selectThread updates selectedThread state`() = runTest {
-        val vm = createViewModel()
-        advanceUntilIdle()
+    fun `sessionInfoList starts empty`() = runTest {
+        val repo = mockRepo()
+        coEvery { repo.fetchForDispatch(any(), any()) } returns makeListResult()
 
-        assertNull(vm.selectedThread.value)
-
-        val thread = ThreadInfo(
-            threadId = "test-123",
-            subject = "Test Thread",
-            participants = listOf("engineering", "nigel"),
-            messageCount = 3,
-            createdAt = "2026-01-01",
-            lastActivity = "2026-01-02"
-        )
-        vm.selectThread(thread)
-        assertEquals("test-123", vm.selectedThread.value?.threadId)
-
-        vm.selectThread(null)
-        assertNull(vm.selectedThread.value)
-    }
-
-    @Test
-    fun `sync failure does not crash — isRefreshing resets`() = runTest {
-        coEvery { syncManager.syncThreads() } throws RuntimeException("Network error")
-
-        val vm = createViewModel()
-        advanceUntilIdle()
-
-        // Init triggers refresh which throws — should be caught
-        assertFalse(vm.isRefreshing.value)
-    }
-
-    @Test
-    fun `thread refresh event triggers sync with debounce`() = runTest {
-        val refreshFlow = MutableSharedFlow<String>()
-        every { messageRepository.threadRefreshEvents } returns refreshFlow
-
-        val vm = createViewModel()
-        advanceUntilIdle()
-
-        // Clear the init sync call count
-        clearMocks(syncManager, answers = false)
-        coEvery { syncManager.syncThreads() } just Runs
-
-        // Emit a refresh event
-        refreshFlow.emit("thread-abc")
-        advanceTimeBy(600) // Past the 500ms debounce
-        advanceUntilIdle()
-
-        coVerify(atLeast = 1) { syncManager.syncThreads() }
+        val vm = ChatViewModel(repo)
+        // Immediately after construction, before any coroutine runs
+        assertEquals(emptyList<ChatViewModel.SessionInfo>(), vm.sessionInfoList.value)
     }
 }

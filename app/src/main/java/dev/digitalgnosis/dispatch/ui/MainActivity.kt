@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -33,6 +34,7 @@ import dev.digitalgnosis.dispatch.network.SseConnectionService
 import dev.digitalgnosis.dispatch.tts.ModelManager
 import dev.digitalgnosis.dispatch.tts.TtsEngine
 import dev.digitalgnosis.dispatch.ui.navigation.BottomNavBar
+import dev.digitalgnosis.dispatch.ui.navigation.DispatchNavigationRail
 import dev.digitalgnosis.dispatch.ui.navigation.DispatchTab
 import dev.digitalgnosis.dispatch.ui.screens.*
 import dev.digitalgnosis.dispatch.ui.theme.DispatchTheme
@@ -55,6 +57,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // GAP-S2: Prevent screenshots, screen recording, and Recent Apps thumbnails
+        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        // GAP-S3: Prevent tap-jacking via malicious overlay apps
+        window.decorView.filterTouchesWhenObscured = true
         enableEdgeToEdge()
         requestNotificationPermission()
 
@@ -181,39 +187,33 @@ fun DispatchApp(
         return
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Dispatch") },
-                actions = {
-                    IconButton(onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(TailscaleConfig.SANDBOX_URL))
-                        context.startActivity(intent)
-                    }) {
-                        Icon(Icons.Default.AccountTree, contentDescription = "Sandbox")
-                    }
-                    IconButton(onClick = { showSettings = true }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
-                    }
-                    IconButton(onClick = { showLogViewer = true }) {
-                        Icon(Icons.Default.BugReport, contentDescription = "Logs")
-                    }
+    // Adaptive navigation: use NavigationRail on tablets (>= 600dp), BottomBar on phones
+    val configuration = LocalConfiguration.current
+    val useNavigationRail = configuration.screenWidthDp >= 600
+
+    val topBar: @Composable () -> Unit = {
+        TopAppBar(
+            title = { Text("Dispatch") },
+            actions = {
+                IconButton(onClick = {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(TailscaleConfig.SANDBOX_URL))
+                    context.startActivity(intent)
+                }) {
+                    Icon(Icons.Default.AccountTree, contentDescription = "Sandbox")
                 }
-            )
-        },
-        bottomBar = {
-            BottomNavBar(
-                currentTab = selectedTab,
-                onTabSelected = { currentTab = it.name },
-            )
-        },
-    ) { padding ->
-        Column(modifier = Modifier.padding(padding)) {
-            // Self-update banner — shown when a newer version is on GitHub
+                IconButton(onClick = { showSettings = true }) {
+                    Icon(Icons.Default.Settings, contentDescription = "Settings")
+                }
+                IconButton(onClick = { showLogViewer = true }) {
+                    Icon(Icons.Default.BugReport, contentDescription = "Logs")
+                }
+            }
+        )
+    }
+
+    val screenContent: @Composable (Modifier) -> Unit = { screenModifier ->
+        Column {
             UpdateBanner(updateManager)
-
-            val screenModifier = Modifier.fillMaxSize()
-
             when (selectedTab) {
                 DispatchTab.CHAT -> ChatScreen(
                     modifier = screenModifier,
@@ -234,6 +234,34 @@ fun DispatchApp(
                 DispatchTab.GEMINI -> GeminiWorkspaceScreen(
                     modifier = screenModifier,
                 )
+            }
+        }
+    }
+
+    if (useNavigationRail) {
+        // Tablet layout: NavigationRail on the left, content fills the rest
+        Scaffold(topBar = topBar) { padding ->
+            Row(modifier = Modifier.padding(padding).fillMaxSize()) {
+                DispatchNavigationRail(
+                    currentTab = selectedTab,
+                    onTabSelected = { currentTab = it.name },
+                )
+                screenContent(Modifier.weight(1f).fillMaxHeight())
+            }
+        }
+    } else {
+        // Phone layout: BottomNavBar below content
+        Scaffold(
+            topBar = topBar,
+            bottomBar = {
+                BottomNavBar(
+                    currentTab = selectedTab,
+                    onTabSelected = { currentTab = it.name },
+                )
+            },
+        ) { padding ->
+            Box(modifier = Modifier.padding(padding).fillMaxSize()) {
+                screenContent(Modifier.fillMaxSize())
             }
         }
     }

@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kotlin.serialization)
+    id("kotlin-parcelize")
     // Build will fail until google-services.json is placed in app/.
     // Get it from Firebase Console > Project Settings > Add Android App > download google-services.json
     alias(libs.plugins.google.services)
@@ -163,12 +164,20 @@ dependencies {
     // Sherpa-ONNX — on-device neural TTS (Kokoro voices)
     implementation(files("libs/sherpa-onnx-1.12.28.aar"))
 
-    // ── Test dependencies ──
+    // ── Unit test dependencies ──
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
     testImplementation(libs.arch.core.testing)
+
+    // ── Instrumented / Compose UI test dependencies ──
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.ui.test.junit4)
+    androidTestImplementation(libs.mockk.android)
+    androidTestImplementation(libs.hilt.android.testing)
+    debugImplementation(libs.androidx.ui.test.manifest)
 }
 
 // ── Detekt — Kotlin static analysis ──────────────────────────────────────────

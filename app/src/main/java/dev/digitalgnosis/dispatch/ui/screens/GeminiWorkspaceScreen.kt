@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import dev.digitalgnosis.dispatch.data.GeminiSessionInfo
 import dev.digitalgnosis.dispatch.ui.components.AgentAvatar
+import dev.digitalgnosis.dispatch.ui.components.IncognitoInput
 import dev.digitalgnosis.dispatch.ui.viewmodels.GeminiMessage
 import dev.digitalgnosis.dispatch.ui.viewmodels.GeminiViewModel
 
@@ -172,18 +173,21 @@ private fun SessionDetailContent(viewModel: GeminiViewModel) {
                     IconButton(onClick = { }) {
                         Icon(Icons.Default.EmojiEmotions, contentDescription = "Emoji", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    TextField(
-                        value = replyText,
-                        onValueChange = { replyText = it },
-                        placeholder = { Text("RCS message", style = MaterialTheme.typography.bodyLarge) },
-                        modifier = Modifier.weight(1f),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
+                    // GAP-S1: Keyboard incognito — no keyboard learning on Gemini replies
+                    IncognitoInput {
+                        TextField(
+                            value = replyText,
+                            onValueChange = { replyText = it },
+                            placeholder = { Text("RCS message", style = MaterialTheme.typography.bodyLarge) },
+                            modifier = Modifier.weight(1f),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent
+                            )
                         )
-                    )
+                    }
                 }
             }
             

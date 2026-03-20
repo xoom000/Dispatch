@@ -42,6 +42,7 @@ import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import dev.digitalgnosis.dispatch.ui.components.IncognitoInput
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -309,37 +310,43 @@ fun SendScreen(
                 }
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
             } else {
+                // GAP-S1: Keyboard incognito — message content must not feed keyboard suggestions
+                IncognitoInput {
+                    OutlinedTextField(
+                        value = subjectText,
+                        onValueChange = { subjectText = it },
+                        placeholder = { Text("Subject", style = MaterialTheme.typography.bodyLarge) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color.Transparent,
+                            unfocusedBorderColor = Color.Transparent,
+                        ),
+                        textStyle = MaterialTheme.typography.bodyLarge
+                    )
+                }
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
+            }
+
+            // Message Body
+            // GAP-S1: Keyboard incognito — message content must not feed keyboard suggestions
+            IncognitoInput {
                 OutlinedTextField(
-                    value = subjectText,
-                    onValueChange = { subjectText = it },
-                    placeholder = { Text("Subject", style = MaterialTheme.typography.bodyLarge) },
-                    modifier = Modifier.fillMaxWidth(),
+                    value = messageText,
+                    onValueChange = {
+                        messageText = it
+                        syncDraft()
+                    },
+                    placeholder = { Text("Compose message", style = MaterialTheme.typography.bodyLarge) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Color.Transparent,
                         unfocusedBorderColor = Color.Transparent,
                     ),
                     textStyle = MaterialTheme.typography.bodyLarge
                 )
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
             }
-
-            // Message Body
-            OutlinedTextField(
-                value = messageText,
-                onValueChange = {
-                    messageText = it
-                    syncDraft()
-                },
-                placeholder = { Text("Compose message", style = MaterialTheme.typography.bodyLarge) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.Transparent,
-                    unfocusedBorderColor = Color.Transparent,
-                ),
-                textStyle = MaterialTheme.typography.bodyLarge
-            )
 
             // Attachments
             if (attachedFiles.isNotEmpty()) {

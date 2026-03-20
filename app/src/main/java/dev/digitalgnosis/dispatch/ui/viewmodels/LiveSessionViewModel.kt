@@ -1,10 +1,13 @@
 package dev.digitalgnosis.dispatch.ui.viewmodels
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import dev.digitalgnosis.dispatch.data.SessionInfo
 import dev.digitalgnosis.dispatch.data.SessionRecord
 import dev.digitalgnosis.dispatch.data.SessionRepository
+import dev.digitalgnosis.dispatch.ui.navigation.LiveSessionRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,8 +21,11 @@ import javax.inject.Inject
 
 @HiltViewModel
 class LiveSessionViewModel @Inject constructor(
-    private val sessionRepository: SessionRepository
+    private val sessionRepository: SessionRepository,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
+
+    private val route: LiveSessionRoute = savedStateHandle.toRoute<LiveSessionRoute>()
 
     private val _sessionInfo = MutableStateFlow<SessionInfo?>(null)
     val sessionInfo: StateFlow<SessionInfo?> = _sessionInfo.asStateFlow()
@@ -38,6 +44,15 @@ class LiveSessionViewModel @Inject constructor(
 
     private var pollingJob: kotlinx.coroutines.Job? = null
     private var discoveryJob: kotlinx.coroutines.Job? = null
+
+    init {
+        // Restore session on process death — route args survive via SavedStateHandle.
+        startDiscovery(
+            department = route.department,
+            invokedAt = route.invokedAt,
+            sessionId = route.sessionId,
+        )
+    }
 
     fun startDiscovery(department: String, invokedAt: Long, sessionId: String? = null) {
         discoveryJob?.cancel()

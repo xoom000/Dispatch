@@ -1,55 +1,73 @@
 package dev.digitalgnosis.dispatch.di
 
+import dagger.Binds
 import dagger.Module
-import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dev.digitalgnosis.dispatch.data.CmailRepository
+import dev.digitalgnosis.dispatch.data.CmailRepositoryImpl
 import dev.digitalgnosis.dispatch.data.ConfigRepository
+import dev.digitalgnosis.dispatch.data.ConfigRepositoryImpl
+import dev.digitalgnosis.dispatch.data.DebugRepository
+import dev.digitalgnosis.dispatch.data.DebugRepositoryImpl
 import dev.digitalgnosis.dispatch.data.EventRepository
+import dev.digitalgnosis.dispatch.data.EventRepositoryImpl
+import dev.digitalgnosis.dispatch.data.GeminiRepository
+import dev.digitalgnosis.dispatch.data.GeminiRepositoryImpl
 import dev.digitalgnosis.dispatch.data.HistoryRepository
+import dev.digitalgnosis.dispatch.data.HistoryRepositoryImpl
 import dev.digitalgnosis.dispatch.data.PulseRepository
+import dev.digitalgnosis.dispatch.data.PulseRepositoryImpl
 import dev.digitalgnosis.dispatch.data.SessionRepository
+import dev.digitalgnosis.dispatch.data.SessionRepositoryImpl
 import dev.digitalgnosis.dispatch.data.WhiteboardRepository
-import dev.digitalgnosis.dispatch.network.BaseFileBridgeClient
+import dev.digitalgnosis.dispatch.data.WhiteboardRepositoryImpl
 import javax.inject.Singleton
 
+/**
+ * Hilt DI module that binds repository interfaces to their production implementations.
+ *
+ * All repositories are application-scoped singletons. Consumers inject the interface
+ * (e.g., [SessionRepository]), never the Impl class directly. This allows full mock
+ * substitution in unit tests without a network stack.
+ */
 @Module
 @InstallIn(SingletonComponent::class)
-object RepositoryModule {
+abstract class RepositoryModule {
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideCmailRepository(client: BaseFileBridgeClient): CmailRepository =
-        CmailRepository(client)
+    abstract fun bindSessionRepository(impl: SessionRepositoryImpl): SessionRepository
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideSessionRepository(client: BaseFileBridgeClient): SessionRepository =
-        SessionRepository(client)
+    abstract fun bindCmailRepository(impl: CmailRepositoryImpl): CmailRepository
 
-    @Provides
+    @Binds
     @Singleton
-    fun providePulseRepository(client: BaseFileBridgeClient): PulseRepository =
-        PulseRepository(client)
+    abstract fun bindPulseRepository(impl: PulseRepositoryImpl): PulseRepository
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideConfigRepository(client: BaseFileBridgeClient): ConfigRepository =
-        ConfigRepository(client)
+    abstract fun bindConfigRepository(impl: ConfigRepositoryImpl): ConfigRepository
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideEventRepository(client: BaseFileBridgeClient): EventRepository =
-        EventRepository(client)
+    abstract fun bindEventRepository(impl: EventRepositoryImpl): EventRepository
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideHistoryRepository(client: BaseFileBridgeClient): HistoryRepository =
-        HistoryRepository(client)
+    abstract fun bindHistoryRepository(impl: HistoryRepositoryImpl): HistoryRepository
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideWhiteboardRepository(client: BaseFileBridgeClient): WhiteboardRepository =
-        WhiteboardRepository(client)
+    abstract fun bindWhiteboardRepository(impl: WhiteboardRepositoryImpl): WhiteboardRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindGeminiRepository(impl: GeminiRepositoryImpl): GeminiRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindDebugRepository(impl: DebugRepositoryImpl): DebugRepository
 }

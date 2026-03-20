@@ -84,21 +84,24 @@ fun InputBar(
                 IconButton(onClick = onEmoji, modifier = Modifier.size(40.dp)) {
                     Icon(Icons.Default.EmojiEmotions, contentDescription = "Emoji", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                TextField(
-                    value = value,
-                    onValueChange = onValueChange,
-                    placeholder = { Text("Message", style = MaterialTheme.typography.bodyLarge) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .onFocusChanged { isFocused = it.isFocused },
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        cursorColor = DgNeonCyan,
-                    ),
-                )
+                // GAP-S1: Keyboard incognito — no personalized learning on message input
+                IncognitoInput {
+                    TextField(
+                        value = value,
+                        onValueChange = onValueChange,
+                        placeholder = { Text("Message", style = MaterialTheme.typography.bodyLarge) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .onFocusChanged { isFocused = it.isFocused },
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            cursorColor = DgNeonCyan,
+                        ),
+                    )
+                }
                 IconButton(onClick = onImage, modifier = Modifier.size(40.dp)) {
                     Icon(Icons.Default.Photo, contentDescription = "Gallery", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }

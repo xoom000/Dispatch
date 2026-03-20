@@ -223,5 +223,26 @@ class DispatchFcmService : FirebaseMessagingService() {
     companion object {
         private const val CHANNEL_ID = "dispatch_voice"
         private const val CHANNEL_NAME = "Dispatch Voice Messages"
+
+        // Idempotency guard — prevents duplicate FCM messages from triggering
+        // multiple playback / action events. Bounded to 200 most-recent IDs.
+        private val seenMessageIds = LinkedHashSet<String>()
+        private const val MAX_DEDUP_SIZE = 200
+
+        /**
+         * Returns true if this message ID has already been processed.
+         * Null or blank IDs are never considered duplicates (they cannot be tracked).
+         */
+        fun isDuplicate(messageId: String?): Boolean {
+            if (messageId.isNullOrBlank()) return false
+            synchronized(seenMessageIds) {
+                if (seenMessageIds.contains(messageId)) return true
+                if (seenMessageIds.size >= MAX_DEDUP_SIZE) {
+                    seenMessageIds.remove(seenMessageIds.iterator().next())
+                }
+                seenMessageIds.add(messageId)
+                return false
+            }
+        }
     }
 }

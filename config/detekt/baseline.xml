@@ -1,0 +1,153 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:AccessibilityNodeFinder.kt$AccessibilityNodeFinder$(action is PhoneAction.SendText || action is PhoneAction.ReadMessages) &amp;&amp; (pkg.contains("messaging", ignoreCase = true) || pkg.contains("mms", ignoreCase = true))</ID>
+    <ID>ComplexCondition:DispatchAccessibilityService.kt$DispatchAccessibilityService$(action is PhoneAction.SendText || action is PhoneAction.ReadMessages) &amp;&amp; (pkg.contains("messaging", ignoreCase = true) || pkg.contains("mms", ignoreCase = true))</ID>
+    <ID>CyclomaticComplexMethod:AccessibilityNodeFinder.kt$AccessibilityNodeFinder$fun findTargetAppRoot( action: PhoneAction, windows: List&lt;android.view.accessibility.AccessibilityWindowInfo&gt;, ): AccessibilityNodeInfo?</ID>
+    <ID>CyclomaticComplexMethod:ActivityScreen.kt$@Composable private fun SessionDetailScreen( modifier: Modifier = Modifier, sessionId: String, initialRecordCount: Int, viewModel: SessionDetailViewModel = hiltViewModel(), onBack: () -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:BoardScreen.kt$@Composable fun BoardScreen( modifier: Modifier = Modifier, viewModel: BoardViewModel = hiltViewModel(), whiteboardRefresh: Int, onNavigateToThread: ((String) -&gt; Unit)? = null, )</ID>
+    <ID>CyclomaticComplexMethod:DispatchAccessibilityService.kt$DispatchAccessibilityService$private fun extractStructuredMessages( node: AccessibilityNodeInfo, messages: MutableList&lt;JSONObject&gt;, depth: Int, )</ID>
+    <ID>CyclomaticComplexMethod:DispatchAccessibilityService.kt$DispatchAccessibilityService$private fun findTargetAppRoot(action: PhoneAction): AccessibilityNodeInfo?</ID>
+    <ID>CyclomaticComplexMethod:DispatchAccessibilityService.kt$DispatchAccessibilityService$private fun handleReadMessages(root: AccessibilityNodeInfo, action: PhoneAction.ReadMessages)</ID>
+    <ID>CyclomaticComplexMethod:DispatchAccessibilityService.kt$DispatchAccessibilityService$private fun launchIntent(action: PhoneAction)</ID>
+    <ID>CyclomaticComplexMethod:DispatchAccessibilityService.kt$DispatchAccessibilityService$private fun tryExecutePendingAction()</ID>
+    <ID>CyclomaticComplexMethod:DispatchAccessibilityService.kt$DispatchAccessibilityService$private fun tryTapSendButton(root: AccessibilityNodeInfo, action: PhoneAction.SendText)</ID>
+    <ID>CyclomaticComplexMethod:DispatchAdaptiveTtsBuffer.kt$DispatchAdaptiveTtsBuffer$suspend fun generateAdaptive( text: String, synthesize: suspend (String) -&gt; FloatArray, onChunk: (FloatArray) -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:DispatchFcmService.kt$DispatchFcmService$override fun onMessageReceived(message: RemoteMessage)</ID>
+    <ID>CyclomaticComplexMethod:FileLogTree.kt$FileLogTree$override fun log(priority: Int, tag: String?, message: String, t: Throwable?)</ID>
+    <ID>CyclomaticComplexMethod:HistoryScreen.kt$@OptIn(ExperimentalLayoutApi::class) @Composable fun HistoryScreen( modifier: Modifier = Modifier, viewModel: HistoryViewModel = hiltViewModel(), )</ID>
+    <ID>CyclomaticComplexMethod:LogViewerScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun LogViewerScreen(onBack: () -&gt; Unit)</ID>
+    <ID>CyclomaticComplexMethod:MessageExtractionHelper.kt$MessageExtractionHelper$fun extractStructuredMessages( node: AccessibilityNodeInfo, messages: MutableList&lt;JSONObject&gt;, depth: Int, )</ID>
+    <ID>CyclomaticComplexMethod:MessagesScreen.kt$@Composable fun MessagesScreen( threadId: String, department: String, viewModel: MessagesViewModel = hiltViewModel(), onBack: () -&gt; Unit )</ID>
+    <ID>CyclomaticComplexMethod:SendScreen.kt$@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class) @Composable fun SendScreen( modifier: Modifier = Modifier, viewModel: SendViewModel = hiltViewModel(), draft: SendDraft? = null, onDismiss: () -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:SendViewModel.kt$SendViewModel$private suspend fun sendIndividually( depts: List&lt;String&gt;, message: String, displayMsg: String, invoke: Boolean, threadId: String?, hasFiles: Boolean, files: List&lt;SendDraft.DraftFile&gt;, onSuccess: () -&gt; Unit )</ID>
+    <ID>CyclomaticComplexMethod:SessionsApiClient.kt$SessionsApiClient$fun fetchBubbles(sessionId: String): List&lt;ChatBubbleData&gt;</ID>
+    <ID>CyclomaticComplexMethod:SessionsApiClient.kt$SessionsApiClient$fun pollSessionEvents( sessionId: String, afterId: String? = null, pollIntervalMs: Long = 1000L, ): Flow&lt;StreamEvent&gt;</ID>
+    <ID>CyclomaticComplexMethod:SseConnectionService.kt$SseConnectionService.SseListener$override fun onEvent( eventSource: EventSource, id: String?, type: String?, data: String, )</ID>
+    <ID>CyclomaticComplexMethod:VoiceMap.kt$VoiceMap$fun voiceFor(sender: String): String</ID>
+    <ID>DestructuringDeclarationWithTooManyEntries:FileLogTree.kt$FileLogTree$val (timestamp, level, tag, message) = match.destructured</ID>
+    <ID>LargeClass:DispatchAccessibilityService.kt$DispatchAccessibilityService : AccessibilityService</ID>
+    <ID>LongMethod:ActivityScreen.kt$@Composable private fun SessionDetailScreen( modifier: Modifier = Modifier, sessionId: String, initialRecordCount: Int, viewModel: SessionDetailViewModel = hiltViewModel(), onBack: () -&gt; Unit, )</ID>
+    <ID>LongMethod:ActivityScreen.kt$@Composable private fun SessionListScreen( modifier: Modifier = Modifier, viewModel: AgentsViewModel = hiltViewModel(), onSessionSelected: (SessionInfo) -&gt; Unit, )</ID>
+    <ID>LongMethod:AgentBubble.kt$@Composable fun AgentBubble( modifier: Modifier = Modifier, bubble: ChatBubble, showTimestamp: Boolean, topPadding: Dp, isFirstInRun: Boolean = true, isLastInRun: Boolean = true, department: String = "", snackbarHostState: SnackbarHostState, )</ID>
+    <ID>LongMethod:BoardScreen.kt$@Composable fun BoardScreen( modifier: Modifier = Modifier, viewModel: BoardViewModel = hiltViewModel(), whiteboardRefresh: Int, onNavigateToThread: ((String) -&gt; Unit)? = null, )</ID>
+    <ID>LongMethod:BubbleRichContent.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun BubbleImagePreview( url: String, onCopy: () -&gt; Unit, onOpen: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>LongMethod:ChatScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatScreen( modifier: Modifier = Modifier, viewModel: ChatViewModel = hiltViewModel(), onComposeNew: () -&gt; Unit, onOpenConversation: (sessionId: String, department: String) -&gt; Unit = { _, _ -&gt; }, )</ID>
+    <ID>LongMethod:DispatchBubble.kt$@Composable fun DispatchBubble( modifier: Modifier = Modifier, bubble: ChatBubble, isPlaying: Boolean, showTimestamp: Boolean, topPadding: Dp, isFirstInRun: Boolean = true, isLastInRun: Boolean = true, onReplay: () -&gt; Unit, )</ID>
+    <ID>LongMethod:DispatchFcmService.kt$DispatchFcmService$override fun onMessageReceived(message: RemoteMessage)</ID>
+    <ID>LongMethod:EventCard.kt$@Composable fun EventCard( modifier: Modifier = Modifier, event: OrchestratorEvent, )</ID>
+    <ID>LongMethod:EventFeedScreen.kt$@Composable fun EventFeedScreen( modifier: Modifier = Modifier, viewModel: AgentsViewModel = hiltViewModel(), refreshSignal: Int = 0, )</ID>
+    <ID>LongMethod:GeminiWorkspaceScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun SessionDetailContent(viewModel: GeminiViewModel)</ID>
+    <ID>LongMethod:HistoryCard.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun HistoryCard( modifier: Modifier = Modifier, message: HistoryMessage, viewModel: HistoryViewModel, )</ID>
+    <ID>LongMethod:HistoryScreen.kt$@OptIn(ExperimentalLayoutApi::class) @Composable fun HistoryScreen( modifier: Modifier = Modifier, viewModel: HistoryViewModel = hiltViewModel(), )</ID>
+    <ID>LongMethod:InputBar.kt$@Composable fun InputBar( modifier: Modifier = Modifier, value: String, onValueChange: (String) -&gt; Unit, onSend: () -&gt; Unit, onAttach: () -&gt; Unit = {}, onEmoji: () -&gt; Unit = {}, onImage: () -&gt; Unit = {}, onMic: () -&gt; Unit = {}, isSending: Boolean = false, )</ID>
+    <ID>LongMethod:LiveSessionScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun LiveSessionScreen( department: String, invokedAt: Long, sessionId: String? = null, viewModel: LiveSessionViewModel = hiltViewModel(), onBack: () -&gt; Unit, )</ID>
+    <ID>LongMethod:LiveSessionViewModel.kt$LiveSessionViewModel$fun startDiscovery(department: String, invokedAt: Long, sessionId: String? = null)</ID>
+    <ID>LongMethod:LogViewerScreen.kt$@Composable fun LogEntryCard(log: InMemoryLogTree.LogEntry)</ID>
+    <ID>LongMethod:LogViewerScreen.kt$@Composable private fun TagPickerDialog( tags: List&lt;String&gt;, excludedTags: Set&lt;String&gt;, onExcludedTagsChanged: (Set&lt;String&gt;) -&gt; Unit, onDismiss: () -&gt; Unit )</ID>
+    <ID>LongMethod:LogViewerScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun LogViewerScreen(onBack: () -&gt; Unit)</ID>
+    <ID>LongMethod:MainActivity.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun DispatchApp( tokenManager: TokenManager, modelManager: ModelManager, ttsEngine: TtsEngine, )</ID>
+    <ID>LongMethod:MatrixRainBackground.kt$@Composable fun MatrixRainBackground( modifier: Modifier = Modifier, columnCount: Int = 30, baseColor: Color = Color(0xFF00E5FF), // DgNeonCyan opacity: Float = 0.04f, )</ID>
+    <ID>LongMethod:MessageFormatter.kt$@Composable fun messageFormatter(text: String, primary: Boolean): AnnotatedString</ID>
+    <ID>LongMethod:MessagesScreen.kt$@Composable fun MessagesScreen( threadId: String, department: String, viewModel: MessagesViewModel = hiltViewModel(), onBack: () -&gt; Unit )</ID>
+    <ID>LongMethod:MiniPlayerBar.kt$@Composable fun MiniPlayerBar( state: PlaybackUiState, onPlayPause: () -&gt; Unit, onSkipNext: () -&gt; Unit, onReplay: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>LongMethod:PulsePostCard.kt$@Composable fun PulsePostCard( modifier: Modifier = Modifier, post: PulsePost, showChannel: Boolean, )</ID>
+    <ID>LongMethod:PulseScreen.kt$@Composable fun PulseScreen( modifier: Modifier = Modifier, viewModel: PulseViewModel = hiltViewModel(), refreshSignal: Int = 0, )</ID>
+    <ID>LongMethod:SendScreen.kt$@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class) @Composable fun SendScreen( modifier: Modifier = Modifier, viewModel: SendViewModel = hiltViewModel(), draft: SendDraft? = null, onDismiss: () -&gt; Unit, )</ID>
+    <ID>LongMethod:SessionCard.kt$@OptIn(ExperimentalLayoutApi::class) @Composable fun SessionCard( modifier: Modifier = Modifier, session: SessionInfo, onClick: () -&gt; Unit, runningCommand: String? = null, onCommand: ((String) -&gt; Unit)? = null, )</ID>
+    <ID>LongMethod:SettingsScreen.kt$@Composable private fun VoiceMapCard(viewModel: SettingsViewModel)</ID>
+    <ID>LongMethod:StreamingBubble.kt$@Composable fun StreamingBubble( modifier: Modifier = Modifier, text: String, toolStatus: String?, )</ID>
+    <ID>LongMethod:TaskCard.kt$@Composable fun TaskCard( modifier: Modifier = Modifier, task: WhiteboardTask, onTapThread: ((String) -&gt; Unit)? = null, dimmed: Boolean = false, )</ID>
+    <ID>LongMethod:TypingIndicator.kt$@Composable fun TypingIndicator(modifier: Modifier = Modifier)</ID>
+    <ID>LongMethod:UpdateBanner.kt$@Composable fun UpdateBanner(viewModel: UpdateStateManager)</ID>
+    <ID>LongParameterList:SendViewModel.kt$SendViewModel$( depts: List&lt;String&gt;, message: String, displayMsg: String, invoke: Boolean, threadId: String?, hasFiles: Boolean, files: List&lt;SendDraft.DraftFile&gt;, onSuccess: () -&gt; Unit )</ID>
+    <ID>LoopWithTooManyJumpStatements:DispatchAdaptiveTtsBuffer.kt$DispatchAdaptiveTtsBuffer$for</ID>
+    <ID>LoopWithTooManyJumpStatements:MatrixRainBackground.kt$for</ID>
+    <ID>LoopWithTooManyJumpStatements:TtsEngine.kt$TtsEngine$while</ID>
+    <ID>MatchingDeclarationName:AgentsNavigation.kt$AgentsRoute</ID>
+    <ID>MatchingDeclarationName:BoardNavigation.kt$BoardRoute</ID>
+    <ID>MatchingDeclarationName:ChatNavigation.kt$ChatRoute</ID>
+    <ID>MatchingDeclarationName:EventFeedNavigation.kt$EventFeedRoute</ID>
+    <ID>MatchingDeclarationName:EventModels.kt$OrchestratorEvent</ID>
+    <ID>MatchingDeclarationName:GeminiNavigation.kt$GeminiRoute</ID>
+    <ID>MatchingDeclarationName:HistoryModels.kt$HistoryMessage</ID>
+    <ID>MatchingDeclarationName:HistoryNavigation.kt$HistoryRoute</ID>
+    <ID>MatchingDeclarationName:JumpToBottom.kt$JumpVisibility</ID>
+    <ID>MatchingDeclarationName:LiveSessionNavigation.kt$LiveSessionRoute</ID>
+    <ID>MatchingDeclarationName:LogViewerNavigation.kt$LogViewerRoute</ID>
+    <ID>MatchingDeclarationName:MessagesNavigation.kt$MessagesRoute</ID>
+    <ID>MatchingDeclarationName:PulseNavigation.kt$PulseRoute</ID>
+    <ID>MatchingDeclarationName:SendNavigation.kt$SendRoute</ID>
+    <ID>MatchingDeclarationName:SettingsNavigation.kt$SettingsRoute</ID>
+    <ID>MaxLineLength:DispatchAccessibilityService.kt$DispatchAccessibilityService$val timePattern = Regex("""(.+?)\s+((?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Today|Yesterday)\s+\d{1,2}:\d{2}|\d{1,2}:\d{2})\s*\.\s*$""")</ID>
+    <ID>MaxLineLength:FileLogTree.kt$FileLogTree$append("{\"timestamp\":\"${escape(entry.timestamp)}\",\"level\":\"${escape(entry.level)}\",\"tag\":\"${escape(entry.tag)}\",\"message\":\"$msg\"}")</ID>
+    <ID>MaxLineLength:GeminiWorkspaceScreen.kt$Text(text = session.preview, style = MaterialTheme.typography.bodyMedium, maxLines = 1, color = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
+    <ID>MaxLineLength:MessageExtractionHelper.kt$MessageExtractionHelper$val timePattern = Regex("""(.+?)\s+((?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Today|Yesterday)\s+\d{1,2}:\d{2}|\d{1,2}:\d{2})\s*\.\s*$""")</ID>
+    <ID>NestedBlockDepth:DispatchAccessibilityService.kt$DispatchAccessibilityService$private fun tryExecutePendingAction()</ID>
+    <ID>NestedBlockDepth:FileTransferClient.kt$FileTransferClient$fun downloadToInternalFile( fileUrl: String, fileName: String ): java.io.File?</ID>
+    <ID>NestedBlockDepth:SessionsApiClient.kt$SessionsApiClient$fun fetchBubbles(sessionId: String): List&lt;ChatBubbleData&gt;</ID>
+    <ID>NestedBlockDepth:SessionsApiClient.kt$SessionsApiClient$private fun parseSessionEvent(ev: JSONObject, sessionId: String): List&lt;StreamEvent&gt;</ID>
+    <ID>ReturnCount:DispatchAccessibilityService.kt$DispatchAccessibilityService$private fun extractStructuredMessages( node: AccessibilityNodeInfo, messages: MutableList&lt;JSONObject&gt;, depth: Int, )</ID>
+    <ID>ReturnCount:DispatchAccessibilityService.kt$DispatchAccessibilityService$private fun handleReadMessages(root: AccessibilityNodeInfo, action: PhoneAction.ReadMessages)</ID>
+    <ID>ReturnCount:DispatchLastPlayedManager.kt$DispatchLastPlayedManager$fun restore(): LastPlayedInfo?</ID>
+    <ID>ReturnCount:DispatchPlaybackService.kt$DispatchPlaybackService$private fun attemptDownload(text: String, voice: String, traceId: String?, attempt: Int): File?</ID>
+    <ID>ReturnCount:FileTransferClient.kt$FileTransferClient$fun downloadToStorage( fileUrl: String, fileName: String, onProgress: ((downloaded: Long, total: Long) -&gt; Unit)? = null, ): String?</ID>
+    <ID>ReturnCount:MainActivity.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun DispatchApp( tokenManager: TokenManager, modelManager: ModelManager, ttsEngine: TtsEngine, )</ID>
+    <ID>ReturnCount:MessageExtractionHelper.kt$MessageExtractionHelper$fun extractStructuredMessages( node: AccessibilityNodeInfo, messages: MutableList&lt;JSONObject&gt;, depth: Int, )</ID>
+    <ID>SwallowedException:BigNickTimberTree.kt$BigNickTimberTree$e: Exception</ID>
+    <ID>SwallowedException:FileLogTree.kt$FileLogTree$e: Exception</ID>
+    <ID>SwallowedException:MainActivity.kt$e: Exception</ID>
+    <ID>SwallowedException:SessionsApiClient.kt$SessionsApiClient$e: Exception</ID>
+    <ID>SwallowedException:UpdateChecker.kt$UpdateChecker$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:DispatchApplication.kt$DispatchApplication$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:TtsEngine.kt$TtsEngine$e: Throwable</ID>
+    <ID>TooManyFunctions:AccessibilityNodeFinder.kt$AccessibilityNodeFinder</ID>
+    <ID>TooManyFunctions:DispatchAccessibilityService.kt$DispatchAccessibilityService : AccessibilityService</ID>
+    <ID>TooManyFunctions:DispatchPlaybackService.kt$DispatchPlaybackService : MediaSessionService</ID>
+    <ID>TooManyFunctions:FcmEntryPoint.kt$FcmEntryPoint</ID>
+    <ID>TooManyFunctions:FileLogTree.kt$FileLogTree : DebugTree</ID>
+    <ID>TooManyFunctions:SessionsApiClient.kt$SessionsApiClient</ID>
+    <ID>UnusedImports:BubbleRichContent.kt$import androidx.compose.material.icons.filled.Image</ID>
+    <ID>UnusedImports:BubbleRichContent.kt$import androidx.compose.material.icons.filled.OpenInBrowser</ID>
+    <ID>UnusedImports:BubbleRichContent.kt$import androidx.compose.material3.IconButton</ID>
+    <ID>UnusedImports:BubbleRichContent.kt$import androidx.compose.material3.Snackbar</ID>
+    <ID>UnusedImports:BubbleRichContent.kt$import androidx.compose.material3.SnackbarHost</ID>
+    <ID>UnusedImports:BubbleRichContent.kt$import androidx.compose.runtime.LaunchedEffect</ID>
+    <ID>UnusedImports:BubbleRichContent.kt$import androidx.compose.runtime.mutableStateOf</ID>
+    <ID>UnusedImports:BubbleRichContent.kt$import coil3.compose.AsyncImage</ID>
+    <ID>UnusedImports:DispatchAdaptiveTtsBuffer.kt$import kotlinx.coroutines.CoroutineScope</ID>
+    <ID>UnusedImports:DispatchPlayerViewModel.kt$import kotlinx.coroutines.flow.StateFlow</ID>
+    <ID>UnusedImports:DispatchTab.kt$import androidx.compose.foundation.layout.Column</ID>
+    <ID>UnusedImports:LocalManagerProvider.kt$import androidx.activity.result.ActivityResultLauncher</ID>
+    <ID>UnusedImports:LocalManagerProvider.kt$import androidx.activity.result.contract.ActivityResultContracts</ID>
+    <ID>UnusedImports:MatrixRainBackground.kt$import kotlin.math.floor</ID>
+    <ID>UnusedImports:MessageExtractionHelper.kt$import timber.log.Timber</ID>
+    <ID>UnusedImports:MessagesScreen.kt$import androidx.compose.ui.platform.LocalDensity</ID>
+    <ID>UnusedImports:RootNavScreen.kt$import dev.digitalgnosis.dispatch.ui.navigation.navigateToLiveSession</ID>
+    <ID>UnusedImports:RootNavScreen.kt$import dev.digitalgnosis.dispatch.ui.navigation.navigateToLogViewer</ID>
+    <ID>UnusedImports:RootNavScreen.kt$import dev.digitalgnosis.dispatch.ui.navigation.navigateToSettings</ID>
+    <ID>UnusedParameter:ActivityScreen.kt$initialRecordCount: Int</ID>
+    <ID>UnusedParameter:InputBar.kt$isSending: Boolean = false</ID>
+    <ID>UnusedParameter:RecordItem.kt$modifier: Modifier = Modifier</ID>
+    <ID>UnusedParameter:SendScreen.kt$loading: Boolean</ID>
+    <ID>UnusedParameter:SettingsScreen.kt$isReady: Boolean</ID>
+    <ID>UnusedParameter:ThreadsViewModel.kt$ThreadsViewModel$department: String</ID>
+    <ID>UnusedPrivateMember:DispatchAccessibilityService.kt$DispatchAccessibilityService$private fun findConversationByContact( root: AccessibilityNodeInfo, contact: String, ): AccessibilityNodeInfo?</ID>
+    <ID>UnusedPrivateMember:DispatchAccessibilityService.kt$DispatchAccessibilityService$private fun tapConversationNode(node: AccessibilityNodeInfo)</ID>
+    <ID>UnusedPrivateMember:DispatchPlaybackService.kt$DispatchPlaybackService$private fun onMessageComplete(traceId: String?, fcmReceiveTime: Long)</ID>
+    <ID>UnusedPrivateMember:SessionsApiClient.kt$SessionsApiClient$private fun hasNestedType(json: JSONObject, type: String): Boolean</ID>
+    <ID>UnusedPrivateProperty:ActionResultWriter.kt$ActionResultWriter$private val context: Context</ID>
+    <ID>UnusedPrivateProperty:BubbleRichContent.kt$private val PATH_PATTERN = Regex("""(/[\w./-]+(?:\.\w+)+)|([\w-]+/[\w./-]+(?:\.\w+)+)""")</ID>
+    <ID>UnusedPrivateProperty:DispatchPlaybackService.kt$DispatchPlaybackService$val connectMs = System.currentTimeMillis() - start</ID>
+    <ID>UnusedPrivateProperty:HistoryScreen.kt$private const val PAGE_SIZE = 40</ID>
+    <ID>UnusedPrivateProperty:MainActivity.kt$val dims = LocalDisplayDimensions.current</ID>
+    <ID>UnusedPrivateProperty:MatrixRainBackground.kt$val charWidthPx = 8f * density</ID>
+    <ID>UnusedPrivateProperty:MatrixRainBackground.kt$val headStyle = TextStyle( color = baseColor.copy(alpha = opacity * 6f), fontSize = 11.sp, fontFamily = FontFamily.Monospace )</ID>
+    <ID>UnusedPrivateProperty:ToolResultChip.kt$val isSuccess = record.toolStatus == "success"</ID>
+    <ID>UseCheckOrError:ComposeStateWriteGuard.kt$ComposeStateWriteGuard$throw IllegalStateException( "ComposeStateWriteGuard: MutableState written from thread '$threadName'. $message" )</ID>
+    <ID>UseCheckOrError:FileLogTree.kt$FileLogTree.Companion$throw IllegalStateException( "FileLogTree not initialized. Call init(context) first." )</ID>
+    <ID>UseCheckOrError:InMemoryLogTree.kt$InMemoryLogTree.Companion$throw IllegalStateException( "InMemoryLogTree not initialized. Call init() first." )</ID>
+    <ID>VariableNaming:HistoryViewModel.kt$HistoryViewModel$private val PAGE_SIZE = 40</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -13,8 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,16 +25,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import dev.digitalgnosis.dispatch.data.ChatBubble
-import dev.digitalgnosis.dispatch.ui.components.SymbolAnnotationType
-import dev.digitalgnosis.dispatch.ui.components.messageFormatter
 import dev.digitalgnosis.dispatch.ui.theme.DgDeptBoardroom
 import dev.digitalgnosis.dispatch.ui.theme.DgDeptDefault
 import dev.digitalgnosis.dispatch.ui.theme.DgDeptDispatch
@@ -64,9 +59,8 @@ fun AgentBubble(
     isFirstInRun: Boolean = true,
     isLastInRun: Boolean = true,
     department: String = "",
+    snackbarHostState: SnackbarHostState,
 ) {
-    val uriHandler = LocalUriHandler.current
-    val styledText = messageFormatter(text = bubble.text, primary = false)
 
     // Arrival animation — fires once on first composition
     var appeared by remember { mutableStateOf(false) }
@@ -123,20 +117,11 @@ fun AgentBubble(
                     ) {}
                 }
                 Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-                    ClickableText(
-                        text = styledText,
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontSize = 16.sp,
-                            color = MaterialTheme.colorScheme.onSurface
-                        ),
-                        onClick = { offset ->
-                            styledText.getStringAnnotations(start = offset, end = offset)
-                                .firstOrNull()?.let { annotation ->
-                                    if (annotation.tag == SymbolAnnotationType.LINK.name) {
-                                        uriHandler.openUri(annotation.item)
-                                    }
-                                }
-                        }
+                    BubbleRichContent(
+                        text = bubble.text,
+                        primary = false,
+                        textColor = MaterialTheme.colorScheme.onSurface,
+                        snackbarHostState = snackbarHostState,
                     )
                 }
             }

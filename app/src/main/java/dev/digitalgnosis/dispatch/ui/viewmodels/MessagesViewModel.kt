@@ -1,14 +1,17 @@
 package dev.digitalgnosis.dispatch.ui.viewmodels
 
 import android.content.Context
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import dev.digitalgnosis.dispatch.data.ChatBubble
 import dev.digitalgnosis.dispatch.data.ChatBubbleRepository
 import dev.digitalgnosis.dispatch.data.SessionRepository
 import dev.digitalgnosis.dispatch.data.StreamEvent
 import dev.digitalgnosis.dispatch.playback.DispatchPlaybackService
 import dev.digitalgnosis.dispatch.playback.StreamingTtsQueue
+import dev.digitalgnosis.dispatch.ui.navigation.MessagesRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -44,12 +47,14 @@ class MessagesViewModel @Inject constructor(
     private val chatBubbleRepository: ChatBubbleRepository,
     private val sessionRepository: SessionRepository,
     private val streamingTtsQueue: StreamingTtsQueue,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
-    // ── Session state ───────────────────────────────────────────────
+    // ── Session state — initialized from SavedStateHandle for process death survival ──
 
-    private val _sessionId = MutableStateFlow<String?>(null)
-    private val _department = MutableStateFlow("")
+    private val route: MessagesRoute = savedStateHandle.toRoute<MessagesRoute>()
+    private val _sessionId = MutableStateFlow<String?>(route.threadId)
+    private val _department = MutableStateFlow(route.department)
 
     // ── Bubbles — collected from Room via Flow ──────────────────────
 
@@ -106,6 +111,9 @@ class MessagesViewModel @Inject constructor(
     data class AudioRequest(val text: String, val voice: String?, val sequence: Int)
 
     init {
+        // Auto-load the session from the route args on first creation and after process death.
+        fetchTail(route.threadId)
+
         // Consume audio requests and route through DispatchPlaybackService (ExoPlayer/Media3).
         // The service serializes playback internally — no blocking needed here.
         viewModelScope.launch {

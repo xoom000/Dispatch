@@ -53,3 +53,9 @@ PROJECT-CONTEXT.md
 *.apk
 *.onnx
 *.aab
+
+# Cloned reference repos (have their own git)
+.project/modules/audio-references/Gramophone/
+.project/modules/audio-references/KotlinAudio/
+.project/modules/audio-references/NekoSpeak/
+.project/modules/audio-references/SimpleMediaPlayer/

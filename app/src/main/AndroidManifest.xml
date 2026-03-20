@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!--
+        GAP-S6: Signature-level permission protecting DispatchPlaybackService.
+        Only apps signed with the same key (i.e., Dispatch itself) can send arbitrary
+        intents to the service. System media controllers (BT, Android Auto) bypass
+        permission checks for MediaSessionService binding — they are unaffected.
+    -->
+    <permission
+        android:name="dev.digitalgnosis.dispatch.MEDIA_PLAYBACK"
+        android:protectionLevel="signature" />
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -21,7 +31,7 @@
 
     <application
         android:name=".DispatchApplication"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:usesCleartextTraffic="true"
         android:networkSecurityConfig="@xml/network_security_config"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -63,6 +73,7 @@
         <service
             android:name=".playback.DispatchPlaybackService"
             android:exported="true"
+            android:permission="dev.digitalgnosis.dispatch.MEDIA_PLAYBACK"
             android:foregroundServiceType="mediaPlayback">
             <intent-filter>
                 <action android:name="androidx.media3.session.MediaSessionService" />
