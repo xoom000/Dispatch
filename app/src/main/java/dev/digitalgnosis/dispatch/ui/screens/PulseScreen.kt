@@ -158,7 +158,8 @@ fun PulseScreen(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                items(posts, key = { "${it.ts}_${it.dept}_${it.channel}" }) { post ->
+                items(posts.size, key = { index -> "${posts[index].ts}_${posts[index].dept}_${posts[index].channel}_$index" }) { index ->
+                    val post = posts[index]
                     PulsePostCard(post = post, showChannel = selectedChannel == null)
                 }
             }
