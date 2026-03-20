@@ -120,7 +120,7 @@ fun MessagesScreen(
                     .padding(horizontal = 16.dp),
                 state = listState,
                 contentPadding = PaddingValues(top = 8.dp, bottom = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+                verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.Bottom)
             ) {
 
                 // Sender-run grouping: compare adjacent bubbles
