@@ -12,8 +12,8 @@ import dagger.hilt.android.EntryPointAccessors
 import dev.digitalgnosis.dispatch.accessibility.DispatchAccessibilityService
 import dev.digitalgnosis.dispatch.accessibility.PhoneAction
 import dev.digitalgnosis.dispatch.config.TokenManager
-import dev.digitalgnosis.dispatch.data.DispatchMessage
-import dev.digitalgnosis.dispatch.data.MessageRepository
+import dev.digitalgnosis.dispatch.data.VoiceNotification
+import dev.digitalgnosis.dispatch.data.VoiceNotificationRepository
 import dev.digitalgnosis.dispatch.logging.FileLogTree
 import dev.digitalgnosis.dispatch.playback.DispatchPlaybackService
 import dev.digitalgnosis.dispatch.ui.MainActivity
@@ -25,7 +25,9 @@ class DispatchFcmService : FirebaseMessagingService() {
         EntryPointAccessors.fromApplication(applicationContext, FcmEntryPoint::class.java)
     }
 
-    private val messageRepository: MessageRepository by lazy { entryPoint.messageRepository() }
+    private val voiceNotificationRepository: VoiceNotificationRepository by lazy {
+        entryPoint.voiceNotificationRepository()
+    }
     private val tokenManager: TokenManager by lazy { entryPoint.tokenManager() }
 
     override fun onCreate() {
@@ -79,22 +81,22 @@ class DispatchFcmService : FirebaseMessagingService() {
         Timber.i("FCM payload: sender=%s, priority=%s, msgLen=%d, voice=%s, files=%d, thread=%s",
             sender, priority, messageText.length, voice ?: "none", totalFiles, threadId ?: "none")
 
-        val dispatchMessage = DispatchMessage(
+        val notification = VoiceNotification(
             sender = sender,
             message = messageText,
-            priority = priority,
-            timestamp = timestamp,
             voice = voice,
+            timestamp = timestamp,
+            priority = priority,
+            cmailThreadId = threadId,
             fileUrl = fileUrl,
             fileName = fileName,
             fileSize = fileSize,
             fileUrls = fileUrls,
             fileNames = fileNames,
             fileSizes = fileSizes,
-            threadId = threadId,
         )
 
-        messageRepository.addMessage(dispatchMessage)
+        voiceNotificationRepository.add(notification)
 
         // Start foreground service for reliable background audio playback.
         // FCM high-priority data messages are exempt from background start restrictions.
@@ -147,14 +149,14 @@ class DispatchFcmService : FirebaseMessagingService() {
         Timber.i("FCM ACTION at +%dms: %s (from %s)",
             System.currentTimeMillis() - receiveTime, action.description, sender)
 
-        // Log to message repository so it shows in the app
-        val dispatchMessage = DispatchMessage(
+        // Log to notification repository so it shows in the app
+        voiceNotificationRepository.add(VoiceNotification(
             sender = sender,
             message = "[Action] ${action.description}",
-            priority = data["priority"] ?: "normal",
+            voice = null,
             timestamp = data["timestamp"] ?: "",
-        )
-        messageRepository.addMessage(dispatchMessage)
+            priority = data["priority"] ?: "normal",
+        ))
 
         if (!DispatchAccessibilityService.isEnabled()) {
             Timber.e("FCM ACTION BLOCKED: AccessibilityService not enabled. " +

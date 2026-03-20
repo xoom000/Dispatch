@@ -51,4 +51,19 @@ sealed class StreamEvent {
         val model: String,
         val sessionId: String,
     ) : StreamEvent()
+
+    /** Sentence-level chunk from File Bridge SSE — used for streaming TTS. */
+    data class Sentence(val text: String) : StreamEvent()
+
+    /**
+     * Permission request from Claude — needs user approval.
+     *
+     * Reserved for future use when a permission layer is added.
+     * Not used in the current File Bridge SSE path.
+     */
+    data class PermissionRequest(
+        val requestId: String,
+        val toolName: String,
+        val toolInput: String,
+    ) : StreamEvent()
 }

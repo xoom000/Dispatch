@@ -38,12 +38,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import dev.digitalgnosis.dispatch.ui.theme.DgStatusActive
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import dev.digitalgnosis.dispatch.ui.components.records.RecordItem
 import dev.digitalgnosis.dispatch.ui.viewmodels.LiveSessionViewModel
+import dev.digitalgnosis.dispatch.util.formatModelName
 
 /**
  * Live session watching screen.
@@ -126,7 +128,7 @@ fun LiveSessionScreen(
                                         imageVector = Icons.Default.FiberManualRecord,
                                         contentDescription = null,
                                         modifier = Modifier.size(8.dp),
-                                        tint = Color(0xFF4CAF50),
+                                        tint = DgStatusActive,
                                     )
                                 },
                                 modifier = Modifier
@@ -313,7 +315,7 @@ fun LiveSessionScreen(
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(14.dp),
                                     strokeWidth = 2.dp,
-                                    color = Color(0xFF4CAF50),
+                                    color = DgStatusActive,
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(

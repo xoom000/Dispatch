@@ -12,7 +12,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -93,17 +92,20 @@ class GeminiViewModel @Inject constructor(
     fun refreshSessions() {
         viewModelScope.launch {
             _isLoading.value = true
-            _sessions.value = geminiRepository.fetchSessions()
+            val sessions = geminiRepository.fetchSessions()
+            _sessions.value = sessions
+            Timber.d("GeminiVM: refreshSessions — %d sessions", sessions.size)
             _isLoading.value = false
         }
     }
 
     fun loadSession(id: String) {
+        Timber.d("GeminiVM: loadSession — %s", id.take(8))
         viewModelScope.launch {
             _isLoading.value = true
             _liveBuffer.value = ""
             _liveThoughts.value = ""
-            
+
             val json = geminiRepository.fetchSessionDetail(id)
             if (json != null) {
                 val messages = mutableListOf<GeminiMessage>()
@@ -133,6 +135,9 @@ class GeminiViewModel @Inject constructor(
                     ))
                 }
                 _activeSession.value = GeminiSessionDetail(id, messages)
+                Timber.d("GeminiVM: loadSession — %d messages for %s", messages.size, id.take(8))
+            } else {
+                Timber.w("GeminiVM: loadSession — null response for %s", id.take(8))
             }
             _isLoading.value = false
         }
@@ -146,7 +151,8 @@ class GeminiViewModel @Inject constructor(
 
     fun sendMessage(text: String) {
         val session = _activeSession.value ?: return
-        
+        Timber.d("GeminiVM: sendMessage — session=%s, msgLen=%d", session.id.take(8), text.length)
+
         // Optimistic user message
         val updated = session.messages + GeminiMessage(
             id = "user-${System.currentTimeMillis()}",
@@ -160,15 +166,22 @@ class GeminiViewModel @Inject constructor(
         viewModelScope.launch {
             _liveThoughts.value = "Connecting..."
             var fullText = ""
-            
-            geminiRepository.sendNativePrompt(session.id, text).collect { update ->
-                // Handled globally by SSE listener, but we track fullText for audio
-                if (update is GeminiUpdate.MessageChunk) {
-                    fullText += update.text
+
+            try {
+                geminiRepository.sendNativePrompt(session.id, text).collect { update ->
+                    // Handled globally by SSE listener, but we track fullText for audio
+                    if (update is GeminiUpdate.MessageChunk) {
+                        fullText += update.text
+                    } else if (update is GeminiUpdate.Error) {
+                        Timber.e("GeminiVM: sendMessage stream error — %s", update.message)
+                    }
                 }
+            } catch (e: Exception) {
+                Timber.e(e, "GeminiVM: sendMessage stream failed for session %s", session.id.take(8))
             }
 
             if (fullText.isNotBlank()) {
+                Timber.i("GeminiVM: sendMessage — response received (%d chars), playing audio", fullText.length)
                 withContext(Dispatchers.IO) {
                     audioStreamClient.replayMessage("Gemini CLI", fullText, null)
                 }

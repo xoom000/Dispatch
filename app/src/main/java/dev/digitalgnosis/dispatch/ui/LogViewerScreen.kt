@@ -49,11 +49,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import dev.digitalgnosis.dispatch.ui.theme.DgStatusActive
+import dev.digitalgnosis.dispatch.ui.theme.DgStatusError
+import dev.digitalgnosis.dispatch.ui.theme.DgStatusErrorDeep
+import dev.digitalgnosis.dispatch.ui.theme.DgStatusWarningAlt
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -80,6 +86,10 @@ fun LogViewerScreen(onBack: () -> Unit) {
 
     var hasCrashLogs by remember { mutableStateOf(false) }
     var showingPreviousSession by remember { mutableStateOf(false) }
+    // AtomicBoolean shadow of showingPreviousSession for the log listener.
+    // The listener fires from background threads — reading Compose MutableState
+    // off-main is outside the snapshot contract. This atomic is the thread-safe guard.
+    val showingPreviousSessionAtomic = remember { java.util.concurrent.atomic.AtomicBoolean(false) }
     var crashDismissed by remember { mutableStateOf(false) }
 
     val uniqueTags = remember(logs) {
@@ -100,14 +110,22 @@ fun LogViewerScreen(onBack: () -> Unit) {
         }
     }
 
+    // Coroutine scope for dispatching log listener callbacks to main thread.
+    // The listener fires from WHATEVER thread called Timber.log() — often background.
+    // Writing to MutableState (logs) from a background thread causes the
+    // "Unsupported concurrent change during composition" crash.
+    val scope = rememberCoroutineScope()
+
     LaunchedEffect(Unit) {
         hasCrashLogs = fileLogTree?.hasCrashLogs() == true
         Timber.d("=== LOG VIEWER OPENED ===")
         logs = logTree.getAllLogs()
 
         val listener: (List<InMemoryLogTree.LogEntry>) -> Unit = {
-            if (!showingPreviousSession) {
-                logs = logTree.getAllLogs()
+            if (!showingPreviousSessionAtomic.get()) {
+                scope.launch(kotlinx.coroutines.Dispatchers.Main.immediate) {
+                    logs = logTree.getAllLogs()
+                }
             }
         }
         logTree.addLogListener(listener)
@@ -164,6 +182,7 @@ fun LogViewerScreen(onBack: () -> Unit) {
                             excludedTags = emptySet()
                             hasCrashLogs = false
                             showingPreviousSession = false
+                            showingPreviousSessionAtomic.set(false)
                         }
                     ) {
                         Icon(
@@ -189,10 +208,11 @@ fun LogViewerScreen(onBack: () -> Unit) {
                     .fillMaxWidth()
                     .clickable {
                         showingPreviousSession = true
+                        showingPreviousSessionAtomic.set(true)
                         logs = fileLogTree?.getPreviousSessionLogs() ?: emptyList()
                         crashDismissed = true
                     },
-                color = Color(0xFFFF5252)
+                color = DgStatusError
             ) {
                 Row(
                     modifier = Modifier.padding(12.dp),
@@ -226,6 +246,7 @@ fun LogViewerScreen(onBack: () -> Unit) {
                     .fillMaxWidth()
                     .clickable {
                         showingPreviousSession = false
+                        showingPreviousSessionAtomic.set(false)
                         logs = logTree.getAllLogs()
                     },
                 color = MaterialTheme.colorScheme.tertiaryContainer
@@ -277,11 +298,11 @@ fun LogViewerScreen(onBack: () -> Unit) {
                     },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = when (level) {
-                            "A" -> Color(0xFFB71C1C).copy(alpha = 0.3f)
-                            "E" -> Color(0xFFFF5252).copy(alpha = 0.2f)
-                            "W" -> Color(0xFFFF9800).copy(alpha = 0.2f)
+                            "A" -> DgStatusErrorDeep.copy(alpha = 0.3f)
+                            "E" -> DgStatusError.copy(alpha = 0.2f)
+                            "W" -> DgStatusWarningAlt.copy(alpha = 0.2f)
                             "I" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                            "D" -> Color(0xFF4CAF50).copy(alpha = 0.2f)
+                            "D" -> DgStatusActive.copy(alpha = 0.2f)
                             else -> MaterialTheme.colorScheme.outline
                         }
                     )
@@ -328,7 +349,7 @@ fun LogViewerScreen(onBack: () -> Unit) {
                         onClick = { excludedTags = excludedTags - tag },
                         label = { Text(text = tag, fontSize = 12.sp, maxLines = 1) },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Color(0xFFFF5252).copy(alpha = 0.2f)
+                            selectedContainerColor = DgStatusError.copy(alpha = 0.2f)
                         ),
                         trailingIcon = {
                             Icon(Icons.Default.Clear, "Remove", modifier = Modifier.size(14.dp))
@@ -438,7 +459,7 @@ private fun TagPickerDialog(
                                     if (isExcluded) excludedTags - tag else excludedTags + tag
                                 )
                             },
-                        color = if (isExcluded) Color(0xFFFF5252).copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface,
+                        color = if (isExcluded) DgStatusError.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface,
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Row(
@@ -449,7 +470,7 @@ private fun TagPickerDialog(
                             Text(
                                 text = if (isExcluded) "Hidden" else "Visible",
                                 fontSize = 12.sp,
-                                color = if (isExcluded) Color(0xFFFF5252) else Color(0xFF4CAF50),
+                                color = if (isExcluded) DgStatusError else DgStatusActive,
                                 modifier = Modifier.width(48.dp)
                             )
                             Text(
@@ -476,20 +497,20 @@ fun LogEntryCard(log: InMemoryLogTree.LogEntry) {
     val context = LocalContext.current
 
     val backgroundColor = when (log.level) {
-        "A" -> Color(0xFFB71C1C).copy(alpha = 0.2f)
-        "E" -> Color(0xFFFF5252).copy(alpha = 0.1f)
-        "W" -> Color(0xFFFF9800).copy(alpha = 0.1f)
+        "A" -> DgStatusErrorDeep.copy(alpha = 0.2f)
+        "E" -> DgStatusError.copy(alpha = 0.1f)
+        "W" -> DgStatusWarningAlt.copy(alpha = 0.1f)
         "I" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
-        "D" -> Color(0xFF4CAF50).copy(alpha = 0.05f)
+        "D" -> DgStatusActive.copy(alpha = 0.05f)
         else -> MaterialTheme.colorScheme.surface
     }
 
     val levelColor = when (log.level) {
-        "A" -> Color(0xFFB71C1C)
-        "E" -> Color(0xFFFF5252)
-        "W" -> Color(0xFFFF9800)
+        "A" -> DgStatusErrorDeep
+        "E" -> DgStatusError
+        "W" -> DgStatusWarningAlt
         "I" -> MaterialTheme.colorScheme.primary
-        "D" -> Color(0xFF4CAF50)
+        "D" -> DgStatusActive
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 

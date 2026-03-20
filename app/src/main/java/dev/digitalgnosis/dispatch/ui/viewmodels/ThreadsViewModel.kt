@@ -16,13 +16,15 @@ import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
 
+import dev.digitalgnosis.dispatch.data.CmailEventBus
 import dev.digitalgnosis.dispatch.data.GeminiRepository
 import dev.digitalgnosis.dispatch.data.GeminiUpdate
 
 @HiltViewModel
 class ThreadsViewModel @Inject constructor(
     private val cmailRepository: CmailRepository,
-    private val geminiRepository: GeminiRepository
+    private val geminiRepository: GeminiRepository,
+    private val cmailEventBus: CmailEventBus,
 ) : ViewModel() {
 
     private val _threads = MutableStateFlow<List<ThreadInfo>>(emptyList())
@@ -46,6 +48,14 @@ class ThreadsViewModel @Inject constructor(
     init {
         loadDepartments()
         refreshThreads()
+
+        // Auto-refresh thread list when a cmail SSE event arrives
+        viewModelScope.launch {
+            cmailEventBus.threadUpdates.collect { threadId ->
+                Timber.d("ThreadsVM: cmail event for thread %s — refreshing", threadId.take(8))
+                refreshThreads()
+            }
+        }
     }
 
     fun loadDepartments() {
@@ -70,7 +80,9 @@ class ThreadsViewModel @Inject constructor(
                     cmailRepository.fetchThreads(limit = 50, participant = participant)
                 }
                 _threads.value = result.threads
+                Timber.d("ThreadsVM: refreshThreads — %d threads (participant=%s)", result.threads.size, participant)
             } catch (e: Exception) {
+                Timber.e(e, "ThreadsVM: refreshThreads failed")
                 _error.value = e.message
             } finally {
                 _isLoading.value = false
@@ -86,7 +98,14 @@ class ThreadsViewModel @Inject constructor(
                     cmailRepository.fetchThreadDetail(threadId)
                 }
                 _currentThread.value = result
+                if (result != null) {
+                    Timber.d("ThreadsVM: loadThreadDetail — %d messages for %s",
+                        result.messages.size, threadId.take(8))
+                } else {
+                    Timber.w("ThreadsVM: loadThreadDetail — null result for %s", threadId.take(8))
+                }
             } catch (e: Exception) {
+                Timber.e(e, "ThreadsVM: loadThreadDetail failed for %s", threadId.take(8))
                 _error.value = e.message
             } finally {
                 _isLoading.value = false
@@ -98,17 +117,21 @@ class ThreadsViewModel @Inject constructor(
         viewModelScope.launch {
             // If it's Gemini CLI, use the high-fidelity native path
             if (department.equals("Gemini CLI", ignoreCase = true)) {
+                Timber.d("ThreadsVM: replyToThread — routing to Gemini native path (thread=%s)", threadId.take(8))
                 sendGeminiNative(threadId, department, message)
                 return@launch
             }
 
             // Legacy Cmail path for others
+            Timber.d("ThreadsVM: replyToThread — dept=%s, thread=%s", department, threadId.take(8))
             val result = withContext(Dispatchers.IO) {
                 cmailRepository.replyToThread(threadId, department, message, invoke)
             }
             if (result.isSuccess) {
+                Timber.i("ThreadsVM: replyToThread — success, refreshing thread detail")
                 loadThreadDetail(threadId)
             } else {
+                Timber.e(result.exceptionOrNull(), "ThreadsVM: replyToThread failed for %s", threadId.take(8))
                 _error.value = result.exceptionOrNull()?.message
             }
         }
@@ -116,7 +139,7 @@ class ThreadsViewModel @Inject constructor(
 
     private suspend fun sendGeminiNative(threadId: String, department: String, message: String) {
         _agentThoughts.value = "Starting Gemini session..."
-        
+
         try {
             geminiRepository.sendNativePrompt(threadId, message).collect { update ->
                 when (update) {
@@ -127,13 +150,16 @@ class ThreadsViewModel @Inject constructor(
                         _agentThoughts.value = "" // Clear once output starts
                     }
                     is GeminiUpdate.Error -> {
+                        Timber.e("ThreadsVM: Gemini stream error — %s", update.message)
                         _error.value = update.message
                     }
                 }
             }
             // Refresh thread detail to get the final persisted messages
+            Timber.i("ThreadsVM: sendGeminiNative — stream complete, refreshing thread %s", threadId.take(8))
             loadThreadDetail(threadId)
         } catch (e: Exception) {
+            Timber.e(e, "ThreadsVM: sendGeminiNative failed for thread %s", threadId.take(8))
             _error.value = e.message
         } finally {
             _agentThoughts.value = ""

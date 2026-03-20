@@ -1,6 +1,5 @@
 package dev.digitalgnosis.dispatch.ui.viewmodels
 
-import app.cash.turbine.test
 import dev.digitalgnosis.dispatch.data.MessageRepository
 import dev.digitalgnosis.dispatch.data.SyncManager
 import dev.digitalgnosis.dispatch.data.ThreadDao
@@ -9,7 +8,6 @@ import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.*
 import org.junit.After

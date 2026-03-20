@@ -13,18 +13,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import dev.digitalgnosis.dispatch.network.SessionsApiClient
 import dev.digitalgnosis.dispatch.ui.components.AgentAvatar
 import dev.digitalgnosis.dispatch.ui.viewmodels.ChatViewModel
-import java.text.SimpleDateFormat
-import java.util.Locale
-import java.util.TimeZone
+import dev.digitalgnosis.dispatch.util.formatSmartTimestamp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,97 +30,75 @@ fun ChatScreen(
     onComposeNew: () -> Unit,
     onOpenConversation: (sessionId: String, department: String) -> Unit = { _, _ -> },
 ) {
-    val sessions by viewModel.sessions.collectAsState()
+    val sessions by viewModel.sessionInfoList.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
-    val authStatus by viewModel.authStatus.collectAsState()
 
-    run {
-        Box(modifier = modifier.fillMaxSize()) {
-            Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "Dispatch",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Normal,
-                            fontSize = 22.sp
-                        )
+    Box(modifier = modifier.fillMaxSize()) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Dispatch",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 22.sp
                     )
-                    Row {
-                        IconButton(onClick = { }) {
-                            Icon(Icons.Default.Search, contentDescription = "Search")
-                        }
-                        Surface(
-                            modifier = Modifier.size(32.dp),
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primaryContainer
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text("N", style = MaterialTheme.typography.labelLarge)
-                            }
-                        }
+                )
+                Row {
+                    IconButton(onClick = { }) {
+                        Icon(Icons.Default.Search, contentDescription = "Search")
                     }
-                }
-
-                // Auth status banner
-                if (authStatus.isNotBlank()) {
                     Surface(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                        color = MaterialTheme.colorScheme.errorContainer,
-                        shape = RoundedCornerShape(8.dp)
+                        modifier = Modifier.size(32.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primaryContainer
                     ) {
-                        Text(
-                            text = authStatus,
-                            modifier = Modifier.padding(12.dp),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Text("N", style = MaterialTheme.typography.labelLarge)
+                        }
                     }
-                }
-
-                LazyColumn(modifier = Modifier.weight(1f)) {
-                    items(sessions) { session ->
-                        SessionRow(session) { onOpenConversation(session.id, session.title) }
-                    }
-                    item { Spacer(modifier = Modifier.height(80.dp)) }
                 }
             }
 
-            FloatingActionButton(
-                onClick = onComposeNew,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 24.dp, bottom = 24.dp),
-                shape = RoundedCornerShape(28.dp),
-                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp),
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.AddComment, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Start chat")
+            LazyColumn(modifier = Modifier.weight(1f)) {
+                items(sessions) { session ->
+                    SessionRow(session) {
+                        onOpenConversation(session.sessionId, session.department)
+                    }
                 }
+                item { Spacer(modifier = Modifier.height(80.dp)) }
+            }
+        }
+
+        FloatingActionButton(
+            onClick = onComposeNew,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 24.dp, bottom = 24.dp),
+            shape = RoundedCornerShape(28.dp),
+            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp),
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.AddComment, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Start chat")
             }
         }
     }
 }
 
 @Composable
-private fun SessionRow(session: SessionsApiClient.SessionSummary, onClick: () -> Unit) {
-    val label = session.title.ifBlank { "Session ${session.id.take(12)}" }
-    val statusColor = when (session.status) {
-        "running" -> Color(0xFF4CAF50)
-        "idle" -> MaterialTheme.colorScheme.onSurfaceVariant
-        else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-    }
-    val time = formatTimestamp(session.updatedAt.ifBlank { session.createdAt })
+private fun SessionRow(session: ChatViewModel.SessionInfo, onClick: () -> Unit) {
+    val subtitle = session.title.ifBlank { session.alias.ifBlank { session.sessionId.take(20) } }
+    val time = formatSmartTimestamp(session.lastActivity)
 
     Row(
         modifier = Modifier
@@ -134,22 +108,22 @@ private fun SessionRow(session: SessionsApiClient.SessionSummary, onClick: () ->
             .padding(start = 16.dp, end = 24.dp, top = 12.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AgentAvatar(name = label, size = 52.dp)
+        AgentAvatar(name = session.department, size = 52.dp)
 
         Spacer(modifier = Modifier.width(16.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = label,
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                text = session.department.replaceFirstChar { it.uppercase() },
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = session.status,
+                text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,
-                color = statusColor,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -165,15 +139,3 @@ private fun SessionRow(session: SessionsApiClient.SessionSummary, onClick: () ->
     }
 }
 
-private fun formatTimestamp(iso: String): String {
-    return try {
-        val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply {
-            timeZone = TimeZone.getTimeZone("UTC")
-        }
-        val date = parser.parse(iso.take(19)) ?: return ""
-        val formatter = SimpleDateFormat("HH:mm", Locale.US)
-        formatter.format(date)
-    } catch (e: Exception) {
-        ""
-    }
-}

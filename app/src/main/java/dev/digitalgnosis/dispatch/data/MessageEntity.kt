@@ -5,11 +5,11 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 /**
- * Room entity for persisting dispatch messages across app restarts.
- * Maps 1:1 to DispatchMessage domain model via extension functions.
+ * Room entity for persisting voice notifications and outgoing cmail items across app restarts.
+ * Discriminated by isOutgoing: false = VoiceNotification, true = CmailOutboxItem.
  *
- * List fields (fileUrls, fileNames, fileSizes) are stored as comma-separated strings
- * via the Converters class. This avoids a junction table for a simple cache.
+ * List fields (fileUrls, fileNames, fileSizes) are stored as comma-separated strings.
+ * This avoids a junction table for a simple cache.
  */
 @Entity(tableName = "messages")
 data class MessageEntity(
@@ -58,7 +58,7 @@ fun DispatchMessage.toEntity(): MessageEntity = MessageEntity(
     threadId = threadId,
 )
 
-/** Convert Room entity back to domain model. */
+/** Convert Room entity back to legacy domain model. */
 fun MessageEntity.toDomainModel(): DispatchMessage = DispatchMessage(
     sender = sender,
     message = message,
@@ -79,4 +79,69 @@ fun MessageEntity.toDomainModel(): DispatchMessage = DispatchMessage(
     invokedAt = invokedAt,
     sessionId = sessionId,
     threadId = threadId,
+)
+
+/** Convert incoming entity to VoiceNotification domain model. */
+fun MessageEntity.toVoiceNotification(): VoiceNotification = VoiceNotification(
+    sender = sender,
+    message = message,
+    voice = voice,
+    timestamp = timestamp,
+    priority = priority,
+    cmailThreadId = threadId,
+    receivedAt = receivedAt,
+    fileUrl = fileUrl,
+    fileName = fileName,
+    fileSize = fileSize,
+    fileUrls = fileUrls?.split(",")?.filter { it.isNotBlank() } ?: emptyList(),
+    fileNames = fileNames?.split(",")?.filter { it.isNotBlank() } ?: emptyList(),
+    fileSizes = fileSizes?.split(",")?.mapNotNull { it.trim().toLongOrNull() } ?: emptyList(),
+)
+
+/** Convert VoiceNotification to Room entity. */
+fun VoiceNotification.toEntity(): MessageEntity = MessageEntity(
+    sender = sender,
+    message = message,
+    priority = priority,
+    timestamp = timestamp,
+    voice = voice,
+    fileUrl = fileUrl,
+    fileName = fileName,
+    fileSize = fileSize,
+    fileUrls = fileUrls.joinToString(",").ifEmpty { null },
+    fileNames = fileNames.joinToString(",").ifEmpty { null },
+    fileSizes = fileSizes.joinToString(",").ifEmpty { null },
+    receivedAt = receivedAt,
+    isOutgoing = false,
+    threadId = cmailThreadId,
+)
+
+/** Convert outgoing entity to CmailOutboxItem domain model. */
+fun MessageEntity.toCmailOutboxItem(): CmailOutboxItem = CmailOutboxItem(
+    department = targetDepartment ?: sender,
+    message = message,
+    sentAt = receivedAt,
+    invoked = invoked,
+    invokedDepartment = invokedDepartment,
+    invokedAt = invokedAt,
+    threadId = threadId,
+    sessionId = sessionId,
+    fileNames = fileNames?.split(",")?.filter { it.isNotBlank() } ?: emptyList(),
+)
+
+/** Convert CmailOutboxItem to Room entity. */
+fun CmailOutboxItem.toEntity(): MessageEntity = MessageEntity(
+    sender = "You",
+    message = message,
+    priority = "normal",
+    timestamp = "",
+    receivedAt = sentAt,
+    isOutgoing = true,
+    targetDepartment = department,
+    invoked = invoked,
+    invokedDepartment = invokedDepartment,
+    invokedAt = invokedAt,
+    threadId = threadId,
+    sessionId = sessionId,
+    fileNames = fileNames.joinToString(",").ifEmpty { null },
 )

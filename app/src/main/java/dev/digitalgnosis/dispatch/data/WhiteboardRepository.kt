@@ -21,6 +21,7 @@ class WhiteboardRepository @Inject constructor(
      * Fetch the complete whiteboard state.
      */
     fun fetchWhiteboard(): Whiteboard {
+        Timber.d("WhiteboardRepo: fetchWhiteboard — requesting")
         val body = client.get("whiteboard") ?: return Whiteboard()
 
         return try {
@@ -45,9 +46,11 @@ class WhiteboardRepository @Inject constructor(
                     )
                 )
             }
-            Whiteboard(lastUpdated, tasks)
+            val result = Whiteboard(lastUpdated, tasks)
+            Timber.d("WhiteboardRepo: fetchWhiteboard — got %d tasks (lastUpdated=%s)", result.tasks.size, lastUpdated)
+            result
         } catch (e: Exception) {
-            Timber.e(e, "Whiteboard: parse failed")
+            Timber.e(e, "WhiteboardRepo: fetchWhiteboard parse failed")
             Whiteboard()
         }
     }

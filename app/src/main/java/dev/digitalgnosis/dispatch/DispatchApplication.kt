@@ -5,9 +5,11 @@ import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.HiltAndroidApp
 import dev.digitalgnosis.dispatch.config.TokenManager
 import dev.digitalgnosis.dispatch.logging.BigNickTimberTree
+import dev.digitalgnosis.dispatch.logging.CrashlyticsTree
 import dev.digitalgnosis.dispatch.logging.FileLogTree
 import dev.digitalgnosis.dispatch.logging.InMemoryLogTree
 import dev.digitalgnosis.dispatch.tts.ModelManager
+import dev.digitalgnosis.dispatch.util.ComposeStateWriteGuard
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -20,16 +22,24 @@ class DispatchApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // Plant logging trees: InMemoryLogTree (in-app viewer) + FileLogTree (SSH tail) + BigNickTimberTree (server xfil)
+        // Plant logging trees: InMemoryLogTree (in-app viewer) + FileLogTree (SSH tail) + BigNickTimberTree (server xfil) + CrashlyticsTree (Firebase)
         Timber.plant(InMemoryLogTree.init())
         val fileLogTree = FileLogTree.init(this)
         Timber.plant(fileLogTree)
         Timber.plant(BigNickTimberTree())
+        Timber.plant(CrashlyticsTree())
 
         val storageMode = if (fileLogTree.isUsingSharedStorage()) "SHARED" else "PRIVATE"
         Timber.i("FileLogTree: %s - %s", storageMode, fileLogTree.getLogDirectoryPath())
 
         Timber.i("=== Dispatch Application starting ===")
+
+        // Debug-only: crash immediately if any MutableState is written from a
+        // background thread. Catches the "Unsupported concurrent change during
+        // composition" bug at the source instead of during random layout passes.
+        if (BuildConfig.DEBUG) {
+            ComposeStateWriteGuard.install()
+        }
 
         try {
             retrieveFcmToken()
@@ -59,7 +69,7 @@ class DispatchApplication : Application() {
                     return@addOnCompleteListener
                 }
                 val token = task.result
-                Timber.i("FCM token: %s", token)
+                Timber.i("FCM token: %s...%s", token.take(8), token.takeLast(4))
                 tokenManager.saveToken(token)
             }
     }

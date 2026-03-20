@@ -32,7 +32,7 @@ class HistoryRepository @Inject constructor(
             if (search != null) append("&search=${java.net.URLEncoder.encode(search, "UTF-8")}")
             if (priority != null) append("&priority=$priority")
         }
-        
+        Timber.d("HistoryRepo: fetchDispatchHistory — requesting (sender=%s, limit=%d, offset=%d)", sender, limit, offset)
         val body = client.get("dispatch/history?$params") ?: return HistoryResult(emptyList(), 0)
 
         return try {
@@ -57,9 +57,11 @@ class HistoryRepository @Inject constructor(
                     threadId = if (m.isNull("thread_id")) null else m.optString("thread_id", ""),
                 ))
             }
-            HistoryResult(messages, json.optInt("total", messages.size))
+            val result = HistoryResult(messages, json.optInt("total", messages.size))
+            Timber.d("HistoryRepo: fetchDispatchHistory — got %d messages (total=%d)", result.messages.size, result.total)
+            result
         } catch (e: Exception) {
-            Timber.e(e, "DispatchHistory: parse failed")
+            Timber.e(e, "HistoryRepo: fetchDispatchHistory parse failed")
             HistoryResult(emptyList(), 0)
         }
     }

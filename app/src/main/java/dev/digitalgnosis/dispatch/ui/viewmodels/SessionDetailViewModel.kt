@@ -3,7 +3,6 @@ package dev.digitalgnosis.dispatch.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.digitalgnosis.dispatch.data.SessionDetail
-import dev.digitalgnosis.dispatch.data.SessionInfo
 import dev.digitalgnosis.dispatch.data.SessionRecord
 import dev.digitalgnosis.dispatch.data.SessionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,6 +37,7 @@ class SessionDetailViewModel @Inject constructor(
 
     fun loadSession(sessionId: String, initialRecords: List<SessionRecord> = emptyList()) {
         _records.value = initialRecords
+        Timber.i("SessionDetailVM: loadSession — %s", sessionId.take(8))
         viewModelScope.launch {
             _isLoading.value = true
             try {
@@ -47,8 +47,13 @@ class SessionDetailViewModel @Inject constructor(
                 if (detail != null) {
                     _sessionDetail.value = detail
                     _records.value = detail.records
+                    Timber.i("SessionDetailVM: loaded %d records for %s (status=%s)",
+                        detail.records.size, sessionId.take(8), detail.session.status)
+                } else {
+                    Timber.w("SessionDetailVM: server returned null for %s", sessionId.take(8))
                 }
             } catch (e: Exception) {
+                Timber.e(e, "SessionDetailVM: loadSession failed for %s", sessionId.take(8))
                 _error.value = e.message
             } finally {
                 _isLoading.value = false

@@ -26,15 +26,15 @@ object TailscaleConfig {
     const val TTS_STREAM_SERVER = "http://$OASIS_IP:8400/api/tts/stream"
 
     /**
-     * File Bridge server on dg-core.
+     * File Bridge server on pop-os.
      * Handles file staging (download) and upload (to department cmail inboxes).
      * Runs as systemd service on port 8600.
      */
-    const val FILE_BRIDGE_SERVER = "http://$DG_CORE_IP:8600"
+    const val FILE_BRIDGE_SERVER = "http://$POP_OS_IP:8600"
 
     /**
      * Living Sandbox — auto-generated architecture graph.
      * React frontend served by File Bridge at /sandbox/ path.
      */
-    const val SANDBOX_URL = "http://$DG_CORE_IP:8600/sandbox/"
+    const val SANDBOX_URL = "http://$POP_OS_IP:8600/sandbox/"
 }

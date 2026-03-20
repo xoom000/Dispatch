@@ -8,7 +8,6 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.Response
 import timber.log.Timber
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -26,6 +25,7 @@ class BaseFileBridgeClient @Inject constructor(
 ) {
 
     private val client = OkHttpClient.Builder()
+        .addInterceptor(FileBridgeAuthInterceptor())
         .addInterceptor(ChuckerInterceptor(context))
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
@@ -34,9 +34,10 @@ class BaseFileBridgeClient @Inject constructor(
 
     /**
      * Streaming client — no read timeout for SSE and long-running streams.
-     * Used by SessionsApiClient and streaming chat endpoints.
+     * Used by streaming chat endpoints (SSE).
      */
     private val streamingClient = OkHttpClient.Builder()
+        .addInterceptor(FileBridgeAuthInterceptor())
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(0, TimeUnit.SECONDS)   // SSE: no read timeout
         .writeTimeout(30, TimeUnit.SECONDS)

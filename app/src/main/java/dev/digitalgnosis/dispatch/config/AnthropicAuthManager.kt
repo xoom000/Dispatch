@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import dagger.hilt.android.qualifiers.ApplicationContext
+import dev.digitalgnosis.dispatch.network.FileBridgeAuthInterceptor
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
@@ -93,6 +94,7 @@ class AnthropicAuthManager @Inject constructor(
     fun fetchFromFileBridge(fileBridgeUrl: String): Boolean {
         return try {
             val client = OkHttpClient.Builder()
+                .addInterceptor(FileBridgeAuthInterceptor())
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(10, TimeUnit.SECONDS)
                 .build()

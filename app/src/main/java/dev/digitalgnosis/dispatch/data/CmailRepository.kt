@@ -40,7 +40,7 @@ class CmailRepository @Inject constructor(
             if (agentType != null) put("agent_type", agentType)
         }
 
-        Timber.d("Cmail: payload = %s", payload.toString())
+        Timber.d("Cmail: sendCmail — posting to File Bridge")
         val body = client.post("cmail/send", payload.toString())
         
         if (body == null) {
@@ -50,7 +50,6 @@ class CmailRepository @Inject constructor(
 
         return try {
             val json = JSONObject(body)
-            Timber.i("Cmail: response received = %s", body)
             val result = CmailSendResult(
                 success = true,
                 message = "Sent to $department",
@@ -58,9 +57,11 @@ class CmailRepository @Inject constructor(
                 department = json.optString("department", department).ifBlank { department },
                 sessionId = if (json.isNull("session_id")) null else json.optString("session_id", "").ifBlank { null }
             )
+            Timber.i("Cmail: sendCmail — success (dept=%s, invoked=%b, sessionId=%s)",
+                result.department, result.invoked, result.sessionId?.take(8))
             Result.success(result)
         } catch (e: Exception) {
-            Timber.e(e, "Cmail: parse response FAILED")
+            Timber.e(e, "Cmail: sendCmail parse response failed")
             Result.failure(e)
         }
     }
@@ -77,6 +78,8 @@ class CmailRepository @Inject constructor(
         threadId: String? = null,
         agentType: String? = null,
     ): Result<CmailSendResult> {
+        Timber.d("CmailRepo: sendCmailGroup — requesting (depts=%s, priority=%s, invoke=%b)",
+            departments.joinToString(), priority, invoke)
         val payload = JSONObject().apply {
             put("departments", JSONArray(departments))
             put("message", message)
@@ -99,8 +102,10 @@ class CmailRepository @Inject constructor(
                 department = json.optString("department", departments.first()).ifBlank { departments.first() },
                 sessionId = if (json.isNull("session_id")) null else json.optString("session_id", "").ifBlank { null }
             )
+            Timber.d("CmailRepo: sendCmailGroup — success (%d depts, invoked=%b)", departments.size, result.invoked)
             Result.success(result)
         } catch (e: Exception) {
+            Timber.e(e, "CmailRepo: sendCmailGroup parse failed (depts=%s)", departments.joinToString())
             Result.failure(e)
         }
     }
@@ -109,6 +114,7 @@ class CmailRepository @Inject constructor(
      * Fetch available departments from File Bridge.
      */
     fun fetchDepartments(): List<DepartmentInfo> {
+        Timber.d("CmailRepo: fetchDepartments — requesting")
         val body = client.get("cmail/departments") ?: return emptyList()
 
         return try {
@@ -133,9 +139,10 @@ class CmailRepository @Inject constructor(
                     ))
                 }
             }
+            Timber.d("CmailRepo: fetchDepartments — got %d departments", result.size)
             result
         } catch (e: Exception) {
-            Timber.e(e, "CmailDepts: parse failed")
+            Timber.e(e, "CmailRepo: fetchDepartments parse failed")
             emptyList()
         }
     }
@@ -152,6 +159,7 @@ class CmailRepository @Inject constructor(
             append("limit=$limit&offset=$offset")
             if (participant != null) append("&participant=$participant")
         }
+        Timber.d("CmailRepo: fetchThreads — requesting (limit=%d, offset=%d, participant=%s)", limit, offset, participant)
         val body = client.get("cmail/threads?$params") ?: return ThreadListResult(emptyList(), 0)
 
         return try {
@@ -172,9 +180,11 @@ class CmailRepository @Inject constructor(
                     lastMessagePreview = if (t.isNull("last_message_preview")) null else t.optString("last_message_preview", ""),
                 ))
             }
-            ThreadListResult(threads, json.optInt("total", threads.size))
+            val result = ThreadListResult(threads, json.optInt("total", threads.size))
+            Timber.d("CmailRepo: fetchThreads — got %d threads (total=%d)", result.threads.size, result.total)
+            result
         } catch (e: Exception) {
-            Timber.e(e, "Threads: parse failed")
+            Timber.e(e, "CmailRepo: fetchThreads parse failed")
             ThreadListResult(emptyList(), 0)
         }
     }
@@ -203,6 +213,7 @@ class CmailRepository @Inject constructor(
      * C3 Fix: Client-side deduplication using synthetic IDs and distinctBy.
      */
     fun fetchThreadDetail(threadId: String): ThreadDetail? {
+        Timber.d("CmailRepo: fetchThreadDetail — requesting (thread=%s)", threadId.take(8))
         val body = client.get("cmail/threads/$threadId") ?: return null
 
         return try {
@@ -239,7 +250,7 @@ class CmailRepository @Inject constructor(
             // C3 Fix: Ensure uniqueness by messageId
             val dedupedMessages = messages.distinctBy { it.messageId }
 
-            ThreadDetail(
+            val detail = ThreadDetail(
                 threadId = json.optString("thread_id", threadId),
                 subject = json.optString("subject", ""),
                 participants = parseStringArray(json.optJSONArray("participants")),
@@ -248,8 +259,11 @@ class CmailRepository @Inject constructor(
                 lastActivity = json.optString("last_activity", ""),
                 messages = dedupedMessages
             )
+            Timber.d("CmailRepo: fetchThreadDetail — got %d messages for thread %s",
+                detail.messages.size, threadId.take(8))
+            detail
         } catch (e: Exception) {
-            Timber.e(e, "ThreadDetail: parse failed for $threadId")
+            Timber.e(e, "CmailRepo: fetchThreadDetail parse failed for %s", threadId.take(8))
             null
         }
     }

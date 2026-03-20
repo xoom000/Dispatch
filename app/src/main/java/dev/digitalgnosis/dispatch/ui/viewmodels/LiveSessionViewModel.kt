@@ -83,6 +83,8 @@ class LiveSessionViewModel @Inject constructor(
                             kotlin.math.abs(parseIsoToEpoch(session.startedAt) - invokedAt)
                         }
                         if (best != null) {
+                            Timber.i("LiveSessionVM: discovery found session %s via tier-1 (attempt=%d)",
+                                best.sessionId.take(8), attempt)
                             _sessionInfo.value = best
                             _discovering.value = false
                             startWatching(best.sessionId)
@@ -105,6 +107,8 @@ class LiveSessionViewModel @Inject constructor(
                             }
 
                         if (windowMatch != null) {
+                            Timber.i("LiveSessionVM: discovery found session %s via tier-2 window (attempt=%d)",
+                                windowMatch.sessionId.take(8), attempt)
                             _sessionInfo.value = windowMatch
                             _discovering.value = false
                             startWatching(windowMatch.sessionId)
@@ -113,6 +117,8 @@ class LiveSessionViewModel @Inject constructor(
 
                         if (attempt >= 10 && recentResult.sessions.isNotEmpty()) {
                             val mostRecent = recentResult.sessions.first()
+                            Timber.w("LiveSessionVM: falling back to most-recent session %s (attempt=%d)",
+                                mostRecent.sessionId.take(8), attempt)
                             _sessionInfo.value = mostRecent
                             _discovering.value = false
                             startWatching(mostRecent.sessionId)
@@ -120,7 +126,7 @@ class LiveSessionViewModel @Inject constructor(
                         }
                     }
                 } catch (e: Exception) {
-                    Timber.w(e, "Discovery attempt $attempt failed")
+                    Timber.w(e, "LiveSessionVM: discovery attempt %d failed", attempt)
                 }
                 delay(3000)
             }
@@ -136,6 +142,7 @@ class LiveSessionViewModel @Inject constructor(
             var maxSequence = 0
             
             // Initial load
+            Timber.i("LiveSessionVM: startWatching — initial load for %s", sessionId.take(8))
             try {
                 val detail = withContext(Dispatchers.IO) {
                     sessionRepository.fetchSessionDetail(sessionId, sinceSequence = 0)
@@ -144,8 +151,11 @@ class LiveSessionViewModel @Inject constructor(
                     _records.value = detail.records
                     _sessionInfo.value = detail.session
                     maxSequence = detail.maxSequence
+                    Timber.d("LiveSessionVM: initial load — %d records, maxSeq=%d, status=%s",
+                        detail.records.size, detail.maxSequence, detail.session.status)
                 }
             } catch (e: Exception) {
+                Timber.e(e, "LiveSessionVM: initial load failed for %s", sessionId.take(8))
                 _pollError.value = "Failed to load session: ${e.message}"
             }
 
@@ -165,6 +175,7 @@ class LiveSessionViewModel @Inject constructor(
                         _pollError.value = null
                     }
                 } catch (e: Exception) {
+                    Timber.w(e, "LiveSessionVM: poll failed for %s", sessionId.take(8))
                     _pollError.value = "Connection issue: ${e.javaClass.simpleName}"
                 }
             }

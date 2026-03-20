@@ -19,7 +19,6 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.BaseDataSource
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
-import androidx.media3.datasource.FileDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.session.DefaultMediaNotificationProvider
@@ -28,9 +27,7 @@ import androidx.media3.session.MediaSessionService
 import dagger.hilt.android.EntryPointAccessors
 import dev.digitalgnosis.dispatch.audio.PlaybackStateHolder
 import dev.digitalgnosis.dispatch.config.TailscaleConfig
-import dev.digitalgnosis.dispatch.data.CmailRepository
-import dev.digitalgnosis.dispatch.data.DispatchMessage
-import dev.digitalgnosis.dispatch.data.MessageRepository
+import dev.digitalgnosis.dispatch.data.VoiceNotificationRepository
 import dev.digitalgnosis.dispatch.fcm.FcmEntryPoint
 import dev.digitalgnosis.dispatch.logging.FileLogTree
 import dev.digitalgnosis.dispatch.tts.TtsEngine
@@ -86,8 +83,12 @@ class DispatchPlaybackService : MediaSessionService() {
     }
 
     private val ttsEngine: TtsEngine by lazy { entryPoint.ttsEngine() }
-    private val messageRepository: MessageRepository by lazy { entryPoint.messageRepository() }
-    private val cmailRepository: CmailRepository by lazy { entryPoint.cmailRepository() }
+    private val voiceNotificationRepository: VoiceNotificationRepository by lazy {
+        entryPoint.voiceNotificationRepository()
+    }
+    private val voiceReplyCoordinator: VoiceReplyCoordinator by lazy {
+        entryPoint.voiceReplyCoordinator()
+    }
     private val playbackState: PlaybackStateHolder by lazy { entryPoint.playbackStateHolder() }
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -680,14 +681,14 @@ class DispatchPlaybackService : MediaSessionService() {
     // ── Voice Reply ─────────────────────────────────────────────────
 
     private fun startVoiceReply() {
-        val lastMessage = messageRepository.getMessageAtCursor()
-        val rawSender = lastMessage?.sender
+        val lastNotification = voiceNotificationRepository.getAtCursor()
+        val rawSender = lastNotification?.sender
         val targetDepartment = if (rawSender.isNullOrBlank() || rawSender == "dispatch") {
             "boardroom"
         } else {
             rawSender
         }
-        val threadId = lastMessage?.threadId
+        val threadId = lastNotification?.cmailThreadId
 
         Timber.i("VoiceReply: starting reply to %s (thread=%s)", targetDepartment, threadId ?: "none")
 
@@ -763,35 +764,10 @@ class DispatchPlaybackService : MediaSessionService() {
 
     private fun sendVoiceReply(department: String, message: String, threadId: String?) {
         serviceScope.launch(Dispatchers.IO) {
-            try {
-                val result = cmailRepository.sendCmail(
-                    department = department,
-                    message = message,
-                    subject = "Voice reply from Nigel",
-                    invoke = true,
-                    threadId = threadId,
-                )
-                if (result.isSuccess) {
-                    val res = result.getOrThrow()
-                    messageRepository.addMessage(DispatchMessage(
-                        sender = "You",
-                        message = message,
-                        priority = "normal",
-                        timestamp = "",
-                        isOutgoing = true,
-                        targetDepartment = department,
-                        invoked = res.invoked,
-                        invokedDepartment = if (res.invoked) (res.department ?: department) else null,
-                        sessionId = res.sessionId,
-                        threadId = threadId,
-                    ))
-                    playStatusMessage("Sent to $department")
-                } else {
-                    playStatusMessage("Failed to send reply")
-                }
-            } catch (e: Exception) {
-                Timber.e(e, "VoiceReply: failed to send to %s", department)
-                playStatusMessage("Reply error")
+            val sessionId = voiceReplyCoordinator.sendVoiceReply(department, message, threadId)
+            val statusMsg = if (sessionId != null) "Sent to $department" else "Failed to send reply"
+            withContext(Dispatchers.Main) {
+                playStatusMessage(statusMsg)
             }
         }
     }

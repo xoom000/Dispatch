@@ -3,7 +3,6 @@ package dev.digitalgnosis.dispatch.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.digitalgnosis.dispatch.data.CmailRepository
-import dev.digitalgnosis.dispatch.data.CmailSendResult
 import dev.digitalgnosis.dispatch.data.DepartmentInfo
 import dev.digitalgnosis.dispatch.data.ThreadInfo
 import dev.digitalgnosis.dispatch.network.FileTransferClient
@@ -17,8 +16,10 @@ import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
 
-import dev.digitalgnosis.dispatch.data.DispatchMessage
-import dev.digitalgnosis.dispatch.data.MessageRepository
+import dev.digitalgnosis.dispatch.data.CmailOutboxItem
+import dev.digitalgnosis.dispatch.data.CmailOutboxRepository
+import dev.digitalgnosis.dispatch.data.VoiceNotification
+import dev.digitalgnosis.dispatch.data.VoiceNotificationRepository
 import dev.digitalgnosis.dispatch.ui.SendDraft
 
 import dev.digitalgnosis.dispatch.data.GeminiRepository
@@ -29,7 +30,8 @@ class SendViewModel @Inject constructor(
     private val cmailRepository: CmailRepository,
     private val geminiRepository: GeminiRepository,
     private val fileTransferClient: FileTransferClient,
-    private val messageRepository: MessageRepository
+    private val cmailOutboxRepository: CmailOutboxRepository,
+    private val voiceNotificationRepository: VoiceNotificationRepository,
 ) : ViewModel() {
 
     private val _departments = MutableStateFlow<List<DepartmentInfo>>(emptyList())
@@ -91,7 +93,9 @@ class SendViewModel @Inject constructor(
         viewModelScope.launch {
             _isSending.value = true
             _statusText.value = if (files.isNotEmpty()) "Uploading + sending..." else "Sending..."
-            
+            Timber.d("SendVM: send — depts=%s, files=%d, invoke=%b, thread=%s",
+                depts.joinToString(), files.size, invoke, threadId?.take(8))
+
             val hasFiles = files.isNotEmpty()
             val total = depts.size
             val fileLabel = if (hasFiles) files.joinToString(", ") { it.name } else null
@@ -112,6 +116,7 @@ class SendViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
+                Timber.e(e, "SendVM: send failed (depts=%s)", depts.joinToString())
                 _statusText.value = "Error: ${e.message}"
             } finally {
                 _isSending.value = false
@@ -126,16 +131,13 @@ class SendViewModel @Inject constructor(
         onSuccess: () -> Unit
     ) {
         val targetThreadId = threadId ?: "gemini-native-${System.currentTimeMillis()}"
-        
+        Timber.d("SendVM: sendGeminiNative — thread=%s", targetThreadId.take(8))
+
         // Add user message optimistically
-        messageRepository.addMessage(DispatchMessage(
-            sender = "You",
+        cmailOutboxRepository.add(CmailOutboxItem(
+            department = dept,
             message = message,
-            priority = "normal",
-            timestamp = "",
-            isOutgoing = true,
-            targetDepartment = dept,
-            sessionId = targetThreadId
+            threadId = targetThreadId,
         ))
 
         _statusText.value = "Starting Gemini session..."
@@ -152,24 +154,26 @@ class SendViewModel @Inject constructor(
                         _statusText.value = "Gemini is responding..."
                     }
                     is GeminiUpdate.Error -> {
+                        Timber.e("SendVM: sendGeminiNative stream error — %s", update.message)
                         _error.value = update.message
                     }
                 }
             }
 
             if (fullResponse.isNotBlank()) {
-                messageRepository.addMessage(DispatchMessage(
+                Timber.i("SendVM: sendGeminiNative — response received (%d chars), notifying", fullResponse.length)
+                voiceNotificationRepository.add(VoiceNotification(
                     sender = dept,
                     message = fullResponse,
-                    priority = "normal",
+                    voice = null,
                     timestamp = "",
-                    isOutgoing = false,
-                    sessionId = targetThreadId
+                    cmailThreadId = targetThreadId,
                 ))
             }
             _statusText.value = "Message delivered"
             onSuccess()
         } catch (e: Exception) {
+            Timber.e(e, "SendVM: sendGeminiNative failed for thread %s", targetThreadId.take(8))
             _error.value = e.message
         } finally {
             _statusText.value = null
@@ -209,20 +213,21 @@ class SendViewModel @Inject constructor(
             if (result.isSuccess) {
                 val res = result.getOrThrow()
                 succeeded++
-                messageRepository.addMessage(DispatchMessage(
-                    sender = "You",
+                Timber.i("SendVM: sendIndividually — sent to %s (invoked=%b, session=%s)",
+                    dept, res.invoked, res.sessionId?.take(8))
+                cmailOutboxRepository.add(CmailOutboxItem(
+                    department = dept,
                     message = displayMsg,
-                    priority = "normal",
-                    timestamp = "",
-                    isOutgoing = true,
-                    targetDepartment = dept,
-                    fileNames = if (hasFiles) files.map { it.name } else emptyList(),
+                    sentAt = sendTime,
                     invoked = res.invoked,
                     invokedDepartment = if (res.invoked) (res.department ?: dept) else null,
                     invokedAt = if (res.invoked) sendTime else 0L,
+                    threadId = threadId,
                     sessionId = res.sessionId,
+                    fileNames = if (hasFiles) files.map { it.name } else emptyList(),
                 ))
             } else {
+                Timber.e(result.exceptionOrNull(), "SendVM: sendIndividually — failed for dept=%s", dept)
                 failed++
             }
         }

@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
+import dev.digitalgnosis.dispatch.ui.theme.DgGeminiBubble
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -213,7 +214,7 @@ private fun SessionDetailContent(viewModel: GeminiViewModel) {
 @Composable
 private fun GeminiMessageBubble(message: GeminiMessage) {
     val isGemini = message.isGemini
-    val bubbleColor = if (!isGemini) Color(0xFF004D40) else MaterialTheme.colorScheme.surfaceVariant
+    val bubbleColor = if (!isGemini) DgGeminiBubble else MaterialTheme.colorScheme.surfaceVariant
     val textColor = if (!isGemini) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(

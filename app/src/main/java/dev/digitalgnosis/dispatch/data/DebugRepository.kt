@@ -20,6 +20,7 @@ class DebugRepository @Inject constructor(
      * Fetch last N lines from a named log file.
      */
     fun fetchLogTail(logName: String, lines: Int = 200): LogTailResult {
+        Timber.d("DebugRepo: fetchLogTail — requesting (log=%s, lines=%d)", logName, lines)
         val body = client.get("logs/$logName?lines=$lines")
             ?: return LogTailResult(logName, exists = false, entries = emptyList(), sizeBytes = 0)
 
@@ -44,9 +45,12 @@ class DebugRepository @Inject constructor(
                 }
             }
 
-            LogTailResult(logName, exists, entries, sizeBytes)
+            val result = LogTailResult(logName, exists, entries, sizeBytes)
+            Timber.d("DebugRepo: fetchLogTail — got %d entries from %s (exists=%b, size=%d)",
+                result.entries.size, logName, result.exists, result.sizeBytes)
+            result
         } catch (e: Exception) {
-            Timber.e(e, "DebugRepo: parse failed for $logName")
+            Timber.e(e, "DebugRepo: fetchLogTail parse failed for %s", logName)
             LogTailResult(logName, exists = false, entries = emptyList(), sizeBytes = 0)
         }
     }
@@ -55,6 +59,7 @@ class DebugRepository @Inject constructor(
      * Fetch metadata for all available log files.
      */
     fun fetchLogIndex(): List<LogFileMeta> {
+        Timber.d("DebugRepo: fetchLogIndex — requesting")
         val body = client.get("logs/") ?: return emptyList()
 
         return try {
@@ -72,9 +77,10 @@ class DebugRepository @Inject constructor(
                     )
                 )
             }
+            Timber.d("DebugRepo: fetchLogIndex — got %d log files", result.size)
             result
         } catch (e: Exception) {
-            Timber.e(e, "DebugRepo: log index parse failed")
+            Timber.e(e, "DebugRepo: fetchLogIndex parse failed")
             emptyList()
         }
     }
@@ -83,6 +89,7 @@ class DebugRepository @Inject constructor(
      * Fetch active sessions from File Bridge.
      */
     fun fetchActiveSessions(): List<ActiveSessionInfo> {
+        Timber.d("DebugRepo: fetchActiveSessions — requesting")
         val body = client.get("sessions/active") ?: return emptyList()
 
         return try {
@@ -104,9 +111,10 @@ class DebugRepository @Inject constructor(
                     )
                 )
             }
+            Timber.d("DebugRepo: fetchActiveSessions — got %d active sessions", result.size)
             result
         } catch (e: Exception) {
-            Timber.e(e, "DebugRepo: sessions parse failed")
+            Timber.e(e, "DebugRepo: fetchActiveSessions parse failed")
             emptyList()
         }
     }
@@ -115,17 +123,21 @@ class DebugRepository @Inject constructor(
      * Fetch server health info.
      */
     fun fetchHealth(): ServerHealth? {
+        Timber.d("DebugRepo: fetchHealth — requesting")
         val body = client.get("health") ?: return null
 
         return try {
             val json = JSONObject(body)
-            ServerHealth(
+            val health = ServerHealth(
                 status = json.optString("status", "unknown"),
                 version = json.optString("version", ""),
                 stagedFiles = json.optInt("staged_files", 0),
             )
+            Timber.d("DebugRepo: fetchHealth — status=%s, version=%s, staged=%d",
+                health.status, health.version, health.stagedFiles)
+            health
         } catch (e: Exception) {
-            Timber.e(e, "DebugRepo: health parse failed")
+            Timber.e(e, "DebugRepo: fetchHealth parse failed")
             null
         }
     }

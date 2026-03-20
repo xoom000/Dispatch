@@ -92,7 +92,9 @@ class PulseViewModel @Inject constructor(
                 }
                 _posts.value = result.posts
                 _totalPosts.value = result.total
+                Timber.d("PulseVM: refreshPosts — %d posts (channel=%s)", result.posts.size, currentChannel)
             } catch (e: Exception) {
+                Timber.e(e, "PulseVM: refreshPosts failed (channel=%s)", currentChannel)
                 _error.value = e.message
             } finally {
                 _isLoading.value = false

@@ -18,6 +18,7 @@ class ConfigRepository @Inject constructor(
      * Fetch the centralized voice map from File Bridge.
      */
     fun fetchVoiceMap(): VoiceMapResult {
+        Timber.d("ConfigRepo: fetchVoiceMap — requesting")
         val body = client.get("config/voice-map") ?: return VoiceMapResult()
 
         return try {
@@ -38,9 +39,12 @@ class ConfigRepository @Inject constructor(
                 }
             }
 
-            VoiceMapResult(voiceMap, voices)
+            val result = VoiceMapResult(voiceMap, voices)
+            Timber.d("ConfigRepo: fetchVoiceMap — got %d mappings, %d available voices",
+                result.voiceMap.size, result.availableVoices.size)
+            result
         } catch (e: Exception) {
-            Timber.e(e, "VoiceMap: parse failed")
+            Timber.e(e, "ConfigRepo: fetchVoiceMap parse failed")
             VoiceMapResult()
         }
     }
@@ -49,26 +53,36 @@ class ConfigRepository @Inject constructor(
      * Update a single department's voice assignment on File Bridge.
      */
     fun updateVoiceAssignment(department: String, voice: String): Boolean {
+        Timber.d("ConfigRepo: updateVoiceAssignment — requesting (dept=%s, voice=%s)", department, voice)
         val payload = JSONObject().apply {
             put("department", department)
             put("voice", voice)
         }
 
         val body = client.put("config/voice-map", payload.toString())
-        return body != null
+        return if (body != null) {
+            Timber.d("ConfigRepo: updateVoiceAssignment — success")
+            true
+        } else {
+            Timber.w("ConfigRepo: updateVoiceAssignment — failed (no response)")
+            false
+        }
     }
 
     /**
      * Test connectivity to the File Bridge server.
      */
     fun testConnection(): String {
+        Timber.d("ConfigRepo: testConnection — requesting health check")
         val start = System.currentTimeMillis()
         val body = client.get("health")
         val elapsed = System.currentTimeMillis() - start
-        
+
         return if (body != null) {
+            Timber.i("ConfigRepo: testConnection — reachable (%dms)", elapsed)
             "OK: File Bridge reachable (${elapsed}ms)"
         } else {
+            Timber.w("ConfigRepo: testConnection — unreachable (%dms)", elapsed)
             "FAIL: File Bridge unreachable (${elapsed}ms)"
         }
     }

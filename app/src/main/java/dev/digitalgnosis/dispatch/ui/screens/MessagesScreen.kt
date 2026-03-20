@@ -1,43 +1,63 @@
 package dev.digitalgnosis.dispatch.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.EmojiEmotions
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Photo
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import dev.digitalgnosis.dispatch.data.ChatBubble
-import dev.digitalgnosis.dispatch.ui.components.AgentAvatar
-import dev.digitalgnosis.dispatch.ui.theme.DgDispatchBubble
-import dev.digitalgnosis.dispatch.ui.theme.DgDispatchText
-import dev.digitalgnosis.dispatch.ui.theme.DgToolBubble
-import dev.digitalgnosis.dispatch.ui.theme.DgToolText
+import dev.digitalgnosis.dispatch.ui.components.ConversationHeader
+import dev.digitalgnosis.dispatch.ui.components.DateSeparator
+import dev.digitalgnosis.dispatch.ui.components.InputBar
+import dev.digitalgnosis.dispatch.ui.components.JumpToBottom
+import dev.digitalgnosis.dispatch.ui.components.MatrixRainBackground
+import dev.digitalgnosis.dispatch.ui.components.TypingIndicator
+import dev.digitalgnosis.dispatch.ui.components.bubbles.AgentBubble
+import dev.digitalgnosis.dispatch.ui.components.bubbles.DispatchBubble
+import dev.digitalgnosis.dispatch.ui.components.bubbles.NigelBubble
+import dev.digitalgnosis.dispatch.ui.components.bubbles.SendingIndicator
+import dev.digitalgnosis.dispatch.ui.components.bubbles.StreamingBubble
+import dev.digitalgnosis.dispatch.ui.components.bubbles.ToolBubble
 import dev.digitalgnosis.dispatch.ui.viewmodels.MessagesViewModel
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
+
+// ── Helpers ───────────────────────────────────────────────────────────
+
+private fun timestampToDate(timestamp: String): LocalDate? {
+    if (timestamp.isBlank()) return null
+    val formats = listOf(
+        DateTimeFormatter.ISO_LOCAL_DATE_TIME,
+        DateTimeFormatter.ISO_OFFSET_DATE_TIME,
+        DateTimeFormatter.ISO_DATE_TIME,
+        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
+        DateTimeFormatter.ofPattern("yyyy-MM-dd"),
+    )
+    for (fmt in formats) {
+        try {
+            return LocalDate.parse(timestamp, fmt)
+        } catch (_: DateTimeParseException) {}
+    }
+    return null
+}
+
+private fun dateSeparatorLabel(date: LocalDate): String {
+    val today = LocalDate.now()
+    return when (date) {
+        today -> "Today"
+        today.minusDays(1) -> "Yesterday"
+        else -> date.format(DateTimeFormatter.ofPattern("MMM d"))
+    }
+}
+
+// ── Screen ────────────────────────────────────────────────────────────
 
 @Composable
 fun MessagesScreen(
@@ -53,389 +73,159 @@ fun MessagesScreen(
     val streamingToolStatus by viewModel.streamingToolStatus.collectAsState()
     val playingSequence by viewModel.playingSequence.collectAsState()
     val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
     var replyText by rememberSaveable { mutableStateOf("") }
 
     LaunchedEffect(threadId) {
         viewModel.loadSession(threadId, department)
     }
 
+    // Auto-scroll: only when user is already at (or near) the bottom
     LaunchedEffect(bubbles.size, isStreaming) {
         if (bubbles.isNotEmpty()) {
-            listState.animateScrollToItem(bubbles.size - 1)
+            val atBottom = listState.firstVisibleItemIndex >= bubbles.size - 2 ||
+                listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index == listState.layoutInfo.totalItemsCount - 1
+            if (atBottom) {
+                listState.animateScrollToItem(bubbles.size - 1)
+            }
+        }
+    }
+
+    // JumpToBottom visibility: show when last item is not visible
+    val jumpToBottomEnabled by remember {
+        derivedStateOf {
+            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            val totalItems = listState.layoutInfo.totalItemsCount
+            totalItems > 0 && lastVisible < totalItems - 2
         }
     }
 
     // FULL-SCREEN: renders outside Scaffold — no bottomBar conflicts.
-    // imePadding() handles keyboard. statusBarsPadding() handles top inset.
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .background(MaterialTheme.colorScheme.surface)
-        .statusBarsPadding()
-        .imePadding()
+    // imePadding() on the input surface handles keyboard; parent handles status bar.
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+            .statusBarsPadding()
+            .imePadding()
     ) {
-        // Custom Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF1E1F20))
-                .padding(horizontal = 4.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-            }
-            AgentAvatar(name = department, size = 40.dp)
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = department,
-                style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(onClick = { }) { Icon(Icons.Default.Call, contentDescription = "Call") }
-            IconButton(onClick = { }) { Icon(Icons.Default.MoreVert, contentDescription = "More") }
-        }
+        ConversationHeader(department = department, onBack = onBack)
 
-        // Message List
-        LazyColumn(
-            modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
-            state = listState,
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            item { Spacer(modifier = Modifier.height(8.dp)) }
-            items(bubbles) { bubble ->
-                val isCurrentlyPlaying = playingSequence == bubble.sequence
-                when (bubble.type) {
-                    "nigel" -> NigelBubble(bubble)
-                    "agent" -> AgentBubble(bubble)
-                    "dispatch" -> DispatchBubble(
-                        bubble = bubble,
-                        isPlaying = isCurrentlyPlaying,
-                        onReplay = {
-                            viewModel.replayDispatch(bubble.text, bubble.sequence)
-                        }
-                    )
-                    "tool" -> ToolBubble(bubble)
-                    else -> AgentBubble(bubble)
-                }
-            }
-            // Streaming bubble — shows live token accumulation
-            if (isStreaming) {
-                item {
-                    StreamingBubble(
-                        text = streamingText,
-                        toolStatus = streamingToolStatus,
-                    )
-                }
-            }
-            if (isSending && !isStreaming) {
-                item { SendingIndicator() }
-            }
-            item { Spacer(modifier = Modifier.height(16.dp)) }
-        }
-
-        // RCS Input Bar — keyboard handled by imePadding() on parent Column
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { }) {
-                Icon(Icons.Default.Add, contentDescription = "Attach", tint = MaterialTheme.colorScheme.primary)
-            }
-
-            Surface(
-                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                color = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(24.dp),
-                border = BorderStroke(1.dp, Color(0xFF444746))
+        // Message List in a Box so JumpToBottom can overlay it
+        Box(modifier = Modifier.weight(1f)) {
+            MatrixRainBackground()
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                state = listState,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = { }) {
-                        Icon(Icons.Default.EmojiEmotions, contentDescription = "Emoji", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                item { Spacer(modifier = Modifier.height(8.dp)) }
+
+                // Sender-run grouping: compare adjacent bubbles
+                val chatBubbles = bubbles
+                items(chatBubbles.size) { index ->
+                    val bubble = chatBubbles[index]
+                    val prevBubble = chatBubbles.getOrNull(index - 1)
+                    val nextBubble = chatBubbles.getOrNull(index + 1)
+
+                    val isFirstInRun = prevBubble == null || prevBubble.type != bubble.type
+                    val isLastInRun = nextBubble == null || nextBubble.type != bubble.type
+
+                    // Date separator: show when the date changes from the previous bubble
+                    val currentDate = timestampToDate(bubble.timestamp)
+                    val prevDate = prevBubble?.let { timestampToDate(it.timestamp) }
+                    if (currentDate != null && currentDate != prevDate) {
+                        DateSeparator(label = dateSeparatorLabel(currentDate))
                     }
-                    TextField(
-                        value = replyText,
-                        onValueChange = { replyText = it },
-                        placeholder = { Text("RCS message", style = MaterialTheme.typography.bodyLarge) },
-                        modifier = Modifier.weight(1f),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
+
+                    // Extra top padding when a new sender run begins (not the very first bubble)
+                    val topPadding = if (isFirstInRun && index != 0) 8.dp else 0.dp
+
+                    val isCurrentlyPlaying = playingSequence == bubble.sequence
+                    when (bubble.type) {
+                        "nigel" -> NigelBubble(
+                            bubble = bubble,
+                            showTimestamp = isLastInRun,
+                            topPadding = topPadding,
+                            isFirstInRun = isFirstInRun,
+                            isLastInRun = isLastInRun,
                         )
-                    )
-                    IconButton(onClick = { }) {
-                        Icon(Icons.Default.Photo, contentDescription = "Gallery", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        "agent" -> AgentBubble(
+                            bubble = bubble,
+                            showTimestamp = isLastInRun,
+                            topPadding = topPadding,
+                            isFirstInRun = isFirstInRun,
+                            isLastInRun = isLastInRun,
+                            department = department,
+                        )
+                        "dispatch" -> DispatchBubble(
+                            bubble = bubble,
+                            isPlaying = isCurrentlyPlaying,
+                            showTimestamp = isLastInRun,
+                            topPadding = topPadding,
+                            isFirstInRun = isFirstInRun,
+                            isLastInRun = isLastInRun,
+                            onReplay = {
+                                viewModel.replayDispatch(bubble.text, bubble.sequence)
+                            }
+                        )
+                        "tool" -> ToolBubble(bubble = bubble, topPadding = topPadding)
+                        else -> AgentBubble(
+                            bubble = bubble,
+                            showTimestamp = isLastInRun,
+                            topPadding = topPadding,
+                            isFirstInRun = isFirstInRun,
+                            isLastInRun = isLastInRun,
+                            department = department,
+                        )
                     }
                 }
+
+                // Typing indicator — shown when agent is thinking (streaming but no tokens yet)
+                if (isStreaming && streamingText.isEmpty()) {
+                    item {
+                        TypingIndicator(modifier = Modifier.padding(vertical = 4.dp))
+                    }
+                }
+
+                // Streaming bubble — shows live token accumulation
+                if (isStreaming && streamingText.isNotEmpty()) {
+                    item {
+                        StreamingBubble(
+                            text = streamingText,
+                            toolStatus = streamingToolStatus,
+                        )
+                    }
+                }
+                if (isSending && !isStreaming) {
+                    item { SendingIndicator() }
+                }
+                item { Spacer(modifier = Modifier.height(16.dp)) }
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
-
-            val isTextBlank = replyText.isBlank()
-            IconButton(
-                onClick = {
-                    if (!isTextBlank) {
-                        viewModel.sendStreaming(department, replyText)
-                        replyText = ""
+            JumpToBottom(
+                enabled = jumpToBottomEnabled,
+                onClicked = {
+                    scope.launch {
+                        listState.animateScrollToItem(listState.layoutInfo.totalItemsCount - 1)
                     }
                 },
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    imageVector = if (isTextBlank) Icons.Default.Mic else Icons.AutoMirrored.Filled.Send,
-                    contentDescription = "Send",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-    }
-}
-
-// ── Per-type bubble renderers ────────────────────────────────────────
-
-@Composable
-private fun NigelBubble(bubble: ChatBubble) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.End
-    ) {
-        Surface(
-            color = Color(0xFF0842A0),
-            shape = RoundedCornerShape(
-                topStart = 20.dp, topEnd = 20.dp,
-                bottomStart = 20.dp, bottomEnd = 4.dp
-            ),
-            modifier = Modifier.widthIn(max = 360.dp)
-        ) {
-            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-                Text(
-                    text = bubble.text,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
-                    color = Color(0xFFD3E3FD)
-                )
-            }
-        }
-        if (bubble.timestamp.isNotBlank()) {
-            Text(
-                text = bubble.timestamp,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier.padding(top = 2.dp, end = 4.dp)
+                modifier = Modifier.align(Alignment.BottomCenter)
             )
         }
+
+        InputBar(
+            value = replyText,
+            onValueChange = { replyText = it },
+            onSend = {
+                viewModel.sendStreaming(department, replyText)
+                replyText = ""
+                scope.launch { listState.animateScrollToItem(listState.layoutInfo.totalItemsCount - 1) }
+            },
+            isSending = isSending,
+        )
     }
 }
 
-@Composable
-private fun AgentBubble(bubble: ChatBubble) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.Start
-    ) {
-        Surface(
-            color = Color(0xFF282A2C),
-            shape = RoundedCornerShape(
-                topStart = 20.dp, topEnd = 20.dp,
-                bottomStart = 4.dp, bottomEnd = 20.dp
-            ),
-            modifier = Modifier.widthIn(max = 360.dp)
-        ) {
-            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-                Text(
-                    text = bubble.text,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
-                    color = Color(0xFFE3E3E3)
-                )
-            }
-        }
-        if (bubble.timestamp.isNotBlank()) {
-            Text(
-                text = bubble.timestamp,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier.padding(top = 2.dp, start = 4.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun DispatchBubble(
-    bubble: ChatBubble,
-    isPlaying: Boolean,
-    onReplay: () -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.Start
-    ) {
-        Surface(
-            color = DgDispatchBubble,
-            shape = RoundedCornerShape(
-                topStart = 18.dp, topEnd = 18.dp,
-                bottomStart = 4.dp, bottomEnd = 18.dp
-            ),
-            modifier = Modifier.widthIn(max = 300.dp)
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = bubble.text,
-                        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
-                        color = DgDispatchText
-                    )
-                    if (bubble.detail.isNotBlank()) {
-                        Text(
-                            text = bubble.detail,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = DgDispatchText.copy(alpha = 0.6f),
-                            modifier = Modifier.padding(top = 2.dp)
-                        )
-                    }
-                }
-                IconButton(
-                    onClick = onReplay,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    if (isPlaying) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp,
-                            color = DgDispatchText
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "Replay",
-                            tint = DgDispatchText.copy(alpha = 0.7f),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-            }
-        }
-        if (bubble.timestamp.isNotBlank()) {
-            Text(
-                text = bubble.timestamp,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier.padding(top = 2.dp, start = 4.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun ToolBubble(bubble: ChatBubble) {
-    Surface(
-        color = DgToolBubble,
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.padding(vertical = 1.dp)
-    ) {
-        Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)) {
-            Text(
-                text = bubble.text + if (bubble.detail.isNotBlank()) " — ${bubble.detail}" else "",
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontStyle = FontStyle.Italic
-                ),
-                color = DgToolText,
-            )
-        }
-    }
-}
-
-@Composable
-private fun StreamingBubble(text: String, toolStatus: String?) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.Start
-    ) {
-        // Tool status overlay (shows when agent is using tools)
-        AnimatedVisibility(visible = !toolStatus.isNullOrBlank()) {
-            Surface(
-                color = DgToolBubble,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.padding(vertical = 1.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(12.dp),
-                        strokeWidth = 1.5.dp,
-                        color = DgToolText
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = toolStatus ?: "",
-                        style = MaterialTheme.typography.labelMedium.copy(fontStyle = FontStyle.Italic),
-                        color = DgToolText,
-                    )
-                }
-            }
-        }
-
-        // Streaming text bubble
-        Surface(
-            color = Color(0xFF282A2C),
-            shape = RoundedCornerShape(
-                topStart = 20.dp, topEnd = 20.dp,
-                bottomStart = 4.dp, bottomEnd = 20.dp
-            ),
-            modifier = Modifier.widthIn(max = 360.dp)
-        ) {
-            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-                if (text.isBlank()) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(14.dp),
-                            strokeWidth = 2.dp
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Thinking...",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color(0xFFE3E3E3).copy(alpha = 0.7f)
-                        )
-                    }
-                } else {
-                    Text(
-                        text = text,
-                        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
-                        color = Color(0xFFE3E3E3)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SendingIndicator() {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-    ) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = "Sending...",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}

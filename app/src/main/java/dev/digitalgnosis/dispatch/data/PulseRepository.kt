@@ -31,9 +31,9 @@ class PulseRepository @Inject constructor(
             if (department != null) append("&department=$department")
             if (tag != null) append("&tag=$tag")
         }
-        
+        Timber.d("PulseRepo: fetchPulseFeed — requesting (hours=%d, limit=%d, dept=%s)", hours, limit, department)
         val body = client.get("pulse/feed?$params") ?: return PulseFeedResult(emptyList(), 0)
-        
+
         return try {
             val json = JSONObject(body)
             val arr = json.optJSONArray("posts") ?: JSONArray()
@@ -41,9 +41,11 @@ class PulseRepository @Inject constructor(
             for (i in 0 until arr.length()) {
                 posts.add(parsePulsePost(arr.getJSONObject(i)))
             }
-            PulseFeedResult(posts, json.optInt("total", posts.size))
+            val result = PulseFeedResult(posts, json.optInt("total", posts.size))
+            Timber.d("PulseRepo: fetchPulseFeed — got %d posts (total=%d)", result.posts.size, result.total)
+            result
         } catch (e: Exception) {
-            Timber.e(e, "PulseFeed: parse failed")
+            Timber.e(e, "PulseRepo: fetchPulseFeed parse failed")
             PulseFeedResult(emptyList(), 0)
         }
     }
@@ -52,8 +54,9 @@ class PulseRepository @Inject constructor(
      * Fetch list of available pulse channels with post counts.
      */
     fun fetchPulseChannels(): PulseChannelsResult {
+        Timber.d("PulseRepo: fetchPulseChannels — requesting")
         val body = client.get("pulse/channels") ?: return PulseChannelsResult(emptyList())
-        
+
         return try {
             val json = JSONObject(body)
             val arr = json.optJSONArray("channels") ?: JSONArray()
@@ -66,9 +69,11 @@ class PulseRepository @Inject constructor(
                     latestTs = c.optLong("latest_ts", 0),
                 ))
             }
-            PulseChannelsResult(channels)
+            val result = PulseChannelsResult(channels)
+            Timber.d("PulseRepo: fetchPulseChannels — got %d channels", result.channels.size)
+            result
         } catch (e: Exception) {
-            Timber.e(e, "PulseChannels: parse failed")
+            Timber.e(e, "PulseRepo: fetchPulseChannels parse failed")
             PulseChannelsResult(emptyList())
         }
     }
@@ -82,8 +87,9 @@ class PulseRepository @Inject constructor(
         limit: Int = 50,
     ): PulseFeedResult {
         val params = "hours=$hours&limit=$limit"
+        Timber.d("PulseRepo: fetchPulseChannel — requesting (channel=%s, hours=%d, limit=%d)", channelName, hours, limit)
         val body = client.get("pulse/channel/$channelName?$params") ?: return PulseFeedResult(emptyList(), 0)
-        
+
         return try {
             val json = JSONObject(body)
             val arr = json.optJSONArray("posts") ?: JSONArray()
@@ -91,9 +97,11 @@ class PulseRepository @Inject constructor(
             for (i in 0 until arr.length()) {
                 posts.add(parsePulsePost(arr.getJSONObject(i), channelName))
             }
-            PulseFeedResult(posts, json.optInt("total", posts.size))
+            val result = PulseFeedResult(posts, json.optInt("total", posts.size))
+            Timber.d("PulseRepo: fetchPulseChannel — got %d posts from %s (total=%d)", result.posts.size, channelName, result.total)
+            result
         } catch (e: Exception) {
-            Timber.e(e, "PulseChannel[$channelName]: parse failed")
+            Timber.e(e, "PulseRepo: fetchPulseChannel parse failed (channel=%s)", channelName)
             PulseFeedResult(emptyList(), 0)
         }
     }

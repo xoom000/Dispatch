@@ -86,7 +86,9 @@ class AgentsViewModel @Inject constructor(
                 }
                 _sessions.value = result.sessions
                 _totalSessions.value = result.total
+                Timber.d("AgentsVM: refreshSessions — %d sessions", result.sessions.size)
             } catch (e: Exception) {
+                Timber.e(e, "AgentsVM: refreshSessions failed")
                 _error.value = e.message
             } finally {
                 _isLoading.value = false
@@ -108,7 +110,9 @@ class AgentsViewModel @Inject constructor(
                 }
                 _events.value = result.events
                 _totalEvents.value = result.total
+                Timber.d("AgentsVM: refreshEvents — %d events (filter=%s)", result.events.size, currentEventFilter)
             } catch (e: Exception) {
+                Timber.e(e, "AgentsVM: refreshEvents failed")
                 _error.value = e.message
             } finally {
                 _isLoading.value = false
@@ -118,12 +122,15 @@ class AgentsViewModel @Inject constructor(
 
     fun sendSessionCommand(sessionId: String, command: String) {
         viewModelScope.launch {
+            Timber.d("AgentsVM: sendSessionCommand — session=%s, command=%s", sessionId.take(8), command)
             val result = withContext(Dispatchers.IO) {
                 sessionRepository.sendSessionCommand(sessionId, command)
             }
             if (result.isFailure) {
+                Timber.e(result.exceptionOrNull(), "AgentsVM: sendSessionCommand failed")
                 _error.value = result.exceptionOrNull()?.message
             } else {
+                Timber.i("AgentsVM: sendSessionCommand success — refreshing sessions")
                 refreshSessions()
             }
         }

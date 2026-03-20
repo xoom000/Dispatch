@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,9 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
@@ -32,7 +29,6 @@ import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.PersonAdd
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -47,7 +43,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -71,6 +66,8 @@ import dev.digitalgnosis.dispatch.data.ThreadInfo
 import dev.digitalgnosis.dispatch.ui.SendDraft
 import dev.digitalgnosis.dispatch.ui.components.AgentAvatar
 import dev.digitalgnosis.dispatch.ui.viewmodels.SendViewModel
+import dev.digitalgnosis.dispatch.util.formatRelativeTime
+import dev.digitalgnosis.dispatch.util.isoAgeMs
 import timber.log.Timber
 
 /** Sentinel value for "start a new thread" in the thread picker. */
@@ -164,7 +161,7 @@ fun SendScreen(
         if (selectedDepts.size == 1) {
             if (selectedThreadId == null || selectedThreadId == NEW_THREAD_ID) {
                 val recentThread = recentThreads.firstOrNull { thread ->
-                    val age = threadAgeMs(thread.lastActivity)
+                    val age = isoAgeMs(thread.lastActivity)
                     age in 0..24 * 60 * 60 * 1000
                 }
                 selectedThreadId = recentThread?.threadId ?: NEW_THREAD_ID
@@ -520,7 +517,7 @@ private fun ThreadPicker(
                         Column {
                             Text(thread.subject.ifBlank { "Untitled Thread" })
                             Text(
-                                text = formatThreadAge(thread.lastActivity),
+                                text = formatRelativeTime(thread.lastActivity),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -536,27 +533,3 @@ private fun ThreadPicker(
     }
 }
 
-private fun threadAgeMs(iso: String): Long {
-    if (iso.isBlank()) return -1L
-    return try {
-        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US)
-        sdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
-        val date = sdf.parse(iso) ?: return -1L
-        System.currentTimeMillis() - date.time
-    } catch (_: Exception) { -1L }
-}
-
-private fun formatThreadAge(iso: String): String {
-    val ms = threadAgeMs(iso)
-    if (ms < 0) return "unknown"
-    val minutes = ms / (1000 * 60)
-    val hours = ms / (1000 * 60 * 60)
-    val days = ms / (1000 * 60 * 60 * 24)
-    return when {
-        minutes < 1 -> "just now"
-        minutes < 60 -> "${minutes}m ago"
-        hours < 24 -> "${hours}h ago"
-        hours < 48 -> "yesterday"
-        else -> "${days}d ago"
-    }
-}

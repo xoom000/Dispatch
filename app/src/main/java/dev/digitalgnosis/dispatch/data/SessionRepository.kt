@@ -40,9 +40,9 @@ class SessionRepository @Inject constructor(
             if (dept != null) append("&dept=$dept")
             if (status != null) append("&status=$status")
         }
-        
+        Timber.d("SessionRepo: fetchSessions — requesting (dept=%s, status=%s, limit=%d, offset=%d)", dept, status, limit, offset)
         val body = client.get("sessions/?$params") ?: return SessionListResult(emptyList(), 0)
-        
+
         return try {
             val json = JSONObject(body)
             val arr = json.getJSONArray("sessions")
@@ -50,9 +50,11 @@ class SessionRepository @Inject constructor(
             for (i in 0 until arr.length()) {
                 sessions.add(parseSessionInfo(arr.getJSONObject(i)))
             }
-            SessionListResult(sessions, json.optInt("total", sessions.size))
+            val result = SessionListResult(sessions, json.optInt("total", sessions.size))
+            Timber.d("SessionRepo: fetchSessions — got %d sessions (total=%d)", result.sessions.size, result.total)
+            result
         } catch (e: Exception) {
-            Timber.e(e, "Sessions: parse failed")
+            Timber.e(e, "SessionRepo: fetchSessions parse failed")
             SessionListResult(emptyList(), 0)
         }
     }
@@ -66,7 +68,7 @@ class SessionRepository @Inject constructor(
             append("limit=$limit")
             if (dept != null) append("&dept=$dept")
         }
-
+        Timber.d("SessionRepo: fetchForDispatch — requesting (dept=%s, limit=%d)", dept, limit)
         val body = client.get("sessions/for-dispatch?$params")
             ?: return SessionListResult(emptyList(), 0)
 
@@ -77,9 +79,11 @@ class SessionRepository @Inject constructor(
             for (i in 0 until arr.length()) {
                 sessions.add(parseSessionInfo(arr.getJSONObject(i)))
             }
-            SessionListResult(sessions, json.optInt("total", sessions.size))
+            val result = SessionListResult(sessions, json.optInt("total", sessions.size))
+            Timber.d("SessionRepo: fetchForDispatch — got %d sessions (total=%d)", result.sessions.size, result.total)
+            result
         } catch (e: Exception) {
-            Timber.e(e, "ForDispatch: parse failed")
+            Timber.e(e, "SessionRepo: fetchForDispatch parse failed")
             SessionListResult(emptyList(), 0)
         }
     }
@@ -89,8 +93,9 @@ class SessionRepository @Inject constructor(
      */
     fun fetchActiveSessions(dept: String? = null): SessionListResult {
         val params = if (dept != null) "?dept=$dept" else ""
+        Timber.d("SessionRepo: fetchActiveSessions — requesting (dept=%s)", dept)
         val body = client.get("sessions/active$params") ?: return SessionListResult(emptyList(), 0)
-        
+
         return try {
             val json = JSONObject(body)
             val arr = json.getJSONArray("sessions")
@@ -98,9 +103,11 @@ class SessionRepository @Inject constructor(
             for (i in 0 until arr.length()) {
                 sessions.add(parseSessionInfo(arr.getJSONObject(i)))
             }
-            SessionListResult(sessions, json.optInt("total", sessions.size))
+            val result = SessionListResult(sessions, json.optInt("total", sessions.size))
+            Timber.d("SessionRepo: fetchActiveSessions — got %d active sessions", result.sessions.size)
+            result
         } catch (e: Exception) {
-            Timber.e(e, "ActiveSessions: parse failed")
+            Timber.e(e, "SessionRepo: fetchActiveSessions parse failed")
             SessionListResult(emptyList(), 0)
         }
     }
@@ -132,6 +139,8 @@ class SessionRepository @Inject constructor(
             if (beforeSequence > 0) append("&before_sequence=$beforeSequence")
             if (sinceSequence > 0) append("&since_sequence=$sinceSequence")
         }
+        Timber.d("SessionRepo: fetchChatBubbles — requesting (session=%s, limit=%d, tail=%b, before=%d, since=%d)",
+            sessionId.take(8), limit, tail, beforeSequence, sinceSequence)
         val body = client.get("sessions/$sessionId/chat?$params")
             ?: return ChatBubblesResult(emptyList(), sessionId, 0, 0, false, false)
 
@@ -150,7 +159,7 @@ class SessionRepository @Inject constructor(
                     timestamp = b.optString("timestamp", ""),
                 ))
             }
-            ChatBubblesResult(
+            val result = ChatBubblesResult(
                 bubbles = bubbles,
                 sessionId = json.optString("session_id", sessionId),
                 maxSequence = json.optInt("max_sequence", 0),
@@ -158,8 +167,11 @@ class SessionRepository @Inject constructor(
                 hasMore = json.optBoolean("has_more", false),
                 hasEarlier = json.optBoolean("has_earlier", false),
             )
+            Timber.d("SessionRepo: fetchChatBubbles — got %d bubbles for %s (min=%d, max=%d, hasEarlier=%b)",
+                result.bubbles.size, sessionId.take(8), result.minSequence, result.maxSequence, result.hasEarlier)
+            result
         } catch (e: Exception) {
-            Timber.e(e, "ChatBubbles: parse failed for $sessionId")
+            Timber.e(e, "SessionRepo: fetchChatBubbles parse failed for %s", sessionId.take(8))
             ChatBubblesResult(emptyList(), sessionId, 0, 0, false, false)
         }
     }
@@ -174,8 +186,10 @@ class SessionRepository @Inject constructor(
         limit: Int = 500,
     ): SessionDetail? {
         val params = "since_sequence=$sinceSequence&limit=$limit"
+        Timber.d("SessionRepo: fetchSessionDetail — requesting (session=%s, since=%d, limit=%d)",
+            sessionId.take(8), sinceSequence, limit)
         val body = client.get("sessions/$sessionId?$params") ?: return null
-        
+
         return try {
             val json = JSONObject(body)
             val sessionJson = json.getJSONObject("session")
@@ -200,15 +214,18 @@ class SessionRepository @Inject constructor(
                 ))
             }
 
-            SessionDetail(
+            val detail = SessionDetail(
                 session = parseSessionInfo(sessionJson),
                 records = records,
                 totalRecords = json.optInt("total_records", 0),
                 maxSequence = json.optInt("max_sequence", 0),
                 hasMore = json.optBoolean("has_more", false),
             )
+            Timber.d("SessionRepo: fetchSessionDetail — got %d records for %s (maxSeq=%d, status=%s)",
+                detail.records.size, sessionId.take(8), detail.maxSequence, detail.session.status)
+            detail
         } catch (e: Exception) {
-            Timber.e(e, "SessionDetail: parse failed for $sessionId")
+            Timber.e(e, "SessionRepo: fetchSessionDetail parse failed for %s", sessionId.take(8))
             null
         }
     }
@@ -218,21 +235,27 @@ class SessionRepository @Inject constructor(
      * Currently supported: "compact" (compacts the session's context window).
      */
     fun sendSessionCommand(sessionId: String, command: String): Result<String> {
+        Timber.d("SessionRepo: sendSessionCommand — requesting (session=%s, command=%s)", sessionId.take(8), command)
         val payload = JSONObject().apply {
             put("command", command)
         }
-        
+
         val body = client.post("sessions/$sessionId/command", payload.toString())
             ?: return Result.failure(Exception("Network error"))
-            
+
         return try {
             val json = JSONObject(body)
             if (json.optString("status") == "ok") {
-                Result.success(json.optString("output", "OK"))
+                val output = json.optString("output", "OK")
+                Timber.d("SessionRepo: sendSessionCommand — success (output=%s)", output.take(80))
+                Result.success(output)
             } else {
-                Result.failure(Exception(json.optString("detail", "Unknown error")))
+                val detail = json.optString("detail", "Unknown error")
+                Timber.w("SessionRepo: sendSessionCommand — server error: %s", detail)
+                Result.failure(Exception(detail))
             }
         } catch (e: Exception) {
+            Timber.e(e, "SessionRepo: sendSessionCommand failed for %s", sessionId.take(8))
             Result.failure(e)
         }
     }
@@ -241,22 +264,28 @@ class SessionRepository @Inject constructor(
      * Execute a slash command (/compact, /cost, /context) against a department.
      */
     fun sendSlashCommand(command: String, department: String): Result<String> {
+        Timber.d("SessionRepo: sendSlashCommand — requesting (command=%s, dept=%s)", command, department)
         val payload = JSONObject().apply {
             put("command", command)
             put("target", department)
         }
-        
+
         val body = client.post("command", payload.toString())
             ?: return Result.failure(Exception("Network error"))
-            
+
         return try {
             val json = JSONObject(body)
             if (json.optString("status") == "ok") {
-                Result.success(json.optString("output", "OK"))
+                val output = json.optString("output", "OK")
+                Timber.d("SessionRepo: sendSlashCommand — success (output=%s)", output.take(80))
+                Result.success(output)
             } else {
-                Result.failure(Exception(json.optString("detail", "Unknown error")))
+                val detail = json.optString("detail", "Unknown error")
+                Timber.w("SessionRepo: sendSlashCommand — server error: %s", detail)
+                Result.failure(Exception(detail))
             }
         } catch (e: Exception) {
+            Timber.e(e, "SessionRepo: sendSlashCommand failed (command=%s, dept=%s)", command, department)
             Result.failure(e)
         }
     }
@@ -264,7 +293,6 @@ class SessionRepository @Inject constructor(
     /**
      * Stream a chat message via File Bridge SSE.
      * Returns a Flow of StreamEvent for real-time streaming UI.
-     * Used as fallback when Anthropic Sessions API is not configured.
      */
     fun streamChat(
         message: String,
@@ -319,6 +347,10 @@ class SessionRepository @Inject constructor(
                             sessionId = json.optString("session_id", ""),
                             stopReason = json.optString("stop_reason", ""),
                         )
+                        "sentence" -> {
+                            val text = json.optString("text", "")
+                            if (text.isNotEmpty()) StreamEvent.Sentence(text) else null
+                        }
                         "error" -> StreamEvent.Error(
                             errorType = json.optString("error_type", "stream_error"),
                             result = json.optString("message", json.optString("result", "")),
@@ -356,34 +388,6 @@ class SessionRepository @Inject constructor(
         awaitClose {
             Timber.i("StreamChat: Flow cancelled, closing SSE")
             eventSource.cancel()
-        }
-    }
-
-    /**
-     * Send a message to a department via File Bridge's cmail relay.
-     * Uses the /cmail/send endpoint which shells out to cmail CLI as nigel.
-     */
-    fun sendCmailRelay(
-        department: String,
-        message: String,
-        invoke: Boolean = true,
-        sessionId: String? = null,
-    ): Boolean {
-        val payload = JSONObject().apply {
-            put("department", department)
-            put("message", message)
-            put("invoke", invoke)
-            if (sessionId != null) put("session_id", sessionId)
-        }
-
-        val body = client.post("cmail/send", payload.toString()) ?: return false
-
-        return try {
-            val json = JSONObject(body)
-            json.optString("status") == "ok"
-        } catch (e: Exception) {
-            Timber.e(e, "sendCmailRelay: failed for %s", department)
-            false
         }
     }
 

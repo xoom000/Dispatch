@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -8,7 +10,17 @@ plugins {
     // Build will fail until google-services.json is placed in app/.
     // Get it from Firebase Console > Project Settings > Add Android App > download google-services.json
     alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
+    alias(libs.plugins.detekt)
 }
+
+// Load local.properties for secrets (FB_API_KEY, etc.)
+val localPropsFile = rootProject.file("local.properties")
+val fbApiKey: String = if (localPropsFile.exists()) {
+    val props = Properties()
+    localPropsFile.reader().use { props.load(it) }
+    props.getProperty("fb.api.key", "")
+} else ""
 
 android {
     namespace = "dev.digitalgnosis.dispatch"
@@ -20,6 +32,9 @@ android {
         targetSdk = 35
         versionCode = 8
         versionName = "1.0.8"
+
+        // File Bridge API key — loaded from local.properties (gitignored)
+        buildConfigField("String", "FB_API_KEY", "\"${fbApiKey}\"")
     }
 
     signingConfigs {
@@ -93,7 +108,7 @@ dependencies {
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging.ktx)
-    // crashlytics + analytics removed — not in version catalog
+    implementation(libs.firebase.crashlytics.ktx)
 
     implementation(libs.timber)
     implementation(libs.okhttp)
@@ -111,6 +126,9 @@ dependencies {
     debugImplementation(libs.chucker.library)
     releaseImplementation(libs.chucker.library.no.op)
     debugImplementation(libs.leakcanary.android)
+
+    // Static analysis — Compose-specific lint rules (Slack)
+    lintChecks(libs.compose.lint.checks)
 
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
@@ -137,6 +155,11 @@ dependencies {
     // Priority 5 — Performance: AOT compilation of hot paths
     implementation(libs.profileinstaller)
 
+    // AppFunctions — expose Dispatch functions to AI agents
+    implementation(libs.appfunctions)
+    implementation(libs.appfunctions.service)
+    ksp(libs.appfunctions.compiler)
+
     // Sherpa-ONNX — on-device neural TTS (Kokoro voices)
     implementation(files("libs/sherpa-onnx-1.12.28.aar"))
 
@@ -146,4 +169,22 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
     testImplementation(libs.arch.core.testing)
+}
+
+// ── Detekt — Kotlin static analysis ──────────────────────────────────────────
+detekt {
+    buildUponDefaultConfig = true
+    allRules = false
+    config.setFrom(files("${rootProject.projectDir}/config/detekt/detekt.yml"))
+    baseline = file("${rootProject.projectDir}/config/detekt/baseline.xml")
+}
+
+tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
+    reports {
+        html.required.set(true)
+        html.outputLocation.set(file("build/reports/detekt/detekt.html"))
+        sarif.required.set(false)
+        md.required.set(true)
+        md.outputLocation.set(file("build/reports/detekt/detekt.md"))
+    }
 }

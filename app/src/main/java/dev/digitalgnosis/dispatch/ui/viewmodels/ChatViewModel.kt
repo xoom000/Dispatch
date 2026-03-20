@@ -3,8 +3,7 @@ package dev.digitalgnosis.dispatch.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dev.digitalgnosis.dispatch.config.AnthropicAuthManager
-import dev.digitalgnosis.dispatch.network.SessionsApiClient
+import dev.digitalgnosis.dispatch.data.SessionRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,50 +14,45 @@ import timber.log.Timber
 import javax.inject.Inject
 
 /**
- * ViewModel for ChatScreen — shows sessions from the Anthropic Sessions API.
+ * ViewModel for ChatScreen — shows sessions from File Bridge.
  *
- * Fetches sessions via GET /v1/sessions (OAuth-authenticated).
- * Tapping a session opens MessagesScreen which streams via Sessions API.
+ * Fetches sessions via GET /sessions/for-dispatch on File Bridge.
+ * Tapping a session opens MessagesScreen which streams via File Bridge SSE.
  */
 @HiltViewModel
 class ChatViewModel @Inject constructor(
-    private val sessionsApiClient: SessionsApiClient,
-    private val authManager: AnthropicAuthManager,
+    private val sessionRepository: SessionRepository,
 ) : ViewModel() {
 
-    private val _sessions = MutableStateFlow<List<SessionsApiClient.SessionSummary>>(emptyList())
-    val sessions: StateFlow<List<SessionsApiClient.SessionSummary>> = _sessions.asStateFlow()
+    private val _sessions = MutableStateFlow<List<SessionRepository.SessionListResult>>(emptyList())
+    val sessions: StateFlow<List<SessionRepository.SessionListResult>> = _sessions.asStateFlow()
+
+    private val _sessionInfoList = MutableStateFlow<List<SessionInfo>>(emptyList())
+    val sessionInfoList: StateFlow<List<SessionInfo>> = _sessionInfoList.asStateFlow()
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
-    private val _selectedSession = MutableStateFlow<SessionsApiClient.SessionSummary?>(null)
-    val selectedSession: StateFlow<SessionsApiClient.SessionSummary?> = _selectedSession.asStateFlow()
+    private val _selectedSessionId = MutableStateFlow<String?>(null)
+    val selectedSessionId: StateFlow<String?> = _selectedSessionId.asStateFlow()
 
-    private val _authStatus = MutableStateFlow("")
-    val authStatus: StateFlow<String> = _authStatus.asStateFlow()
+    data class SessionInfo(
+        val sessionId: String,
+        val title: String,
+        val department: String,
+        val status: String,
+        val lastActivity: String,
+        val alias: String,
+    )
 
     init {
-        Timber.i("ChatViewModel: Initializing (Sessions API)")
-        // Always refresh credentials from File Bridge before first load
-        viewModelScope.launch(Dispatchers.IO) {
-            val fetched = authManager.fetchFromFileBridge(
-                dev.digitalgnosis.dispatch.config.TailscaleConfig.FILE_BRIDGE_SERVER
-            )
-            if (fetched) {
-                sessionsApiClient.discoverBridgeEnvironment()?.let {
-                    authManager.bridgeEnvironmentId = it
-                }
-                Timber.i("ChatViewModel: refreshed OAuth from File Bridge")
-            }
-            withContext(Dispatchers.Main) { refresh() }
-        }
+        Timber.i("ChatViewModel: Initializing (File Bridge)")
+        refresh()
     }
 
-    fun selectSession(session: SessionsApiClient.SessionSummary?) {
-        val label = session?.title?.take(30) ?: "none"
-        Timber.d("ChatViewModel: Selected session: %s", label)
-        _selectedSession.value = session
+    fun selectSession(sessionId: String?) {
+        _selectedSessionId.value = sessionId
+        Timber.d("ChatViewModel: Selected session: %s", sessionId?.take(20) ?: "none")
     }
 
     fun refresh() {
@@ -66,21 +60,22 @@ class ChatViewModel @Inject constructor(
             Timber.d("ChatViewModel: Refresh triggered")
             _isRefreshing.value = true
             try {
-                if (!authManager.isAuthenticated) {
-                    _authStatus.value = "Not authenticated — configure OAuth in Settings"
-                    _sessions.value = emptyList()
-                    return@launch
-                }
-
-                _authStatus.value = ""
                 val result = withContext(Dispatchers.IO) {
-                    sessionsApiClient.listSessions()
+                    sessionRepository.fetchForDispatch(limit = 30)
                 }
-                _sessions.value = result
-                Timber.d("ChatViewModel: Loaded %d sessions from Sessions API", result.size)
+                _sessionInfoList.value = result.sessions.map { s ->
+                    SessionInfo(
+                        sessionId = s.sessionId,
+                        title = s.summary?.take(60) ?: s.alias.ifBlank { s.sessionId.take(20) },
+                        department = s.department,
+                        status = s.status,
+                        lastActivity = s.lastActivity,
+                        alias = s.alias,
+                    )
+                }
+                Timber.d("ChatViewModel: Loaded %d sessions from File Bridge", result.sessions.size)
             } catch (e: Exception) {
                 Timber.e(e, "ChatViewModel: Refresh failed")
-                _authStatus.value = "Failed to load sessions: ${e.message}"
             } finally {
                 _isRefreshing.value = false
             }

@@ -320,6 +320,12 @@ class FileLogTree private constructor(
 
     fun hasCrashLogs(): Boolean {
         return try {
+            // First check: pending_crash.json — this is THE primary crash artifact.
+            // Written by the uncaught exception handler on every crash.
+            val pendingCrash = File(logDir, PENDING_CRASH_FILENAME)
+            if (pendingCrash.exists() && pendingCrash.length() > 0) return true
+
+            // Fallback: check log files for "APPLICATION CRASH" text
             val yesterday = LocalDate.now().minusDays(1).format(dateFormat)
             val today = LocalDate.now().format(dateFormat)
 

@@ -33,6 +33,7 @@ class GeminiRepository @Inject constructor(
      */
     fun sendNativePrompt(threadId: String, message: String): Flow<GeminiUpdate> = flow {
         val url = "${TailscaleConfig.FILE_BRIDGE_SERVER}/gemini/send"
+        Timber.d("GeminiRepo: sendNativePrompt — requesting (thread=%s, msgLen=%d)", threadId.take(8), message.length)
         Timber.i("GeminiRepo: POST %s", url)
         
         val bodyJson = JSONObject()
@@ -54,6 +55,7 @@ class GeminiRepository @Inject constructor(
                 }
 
                 val reader = response.body?.source() ?: return@use
+                var chunkCount = 0
                 while (!reader.exhausted()) {
                     val line = reader.readUtf8Line() ?: break
                     if (line.startsWith("data: ")) {
@@ -66,13 +68,14 @@ class GeminiRepository @Inject constructor(
 
                             when (updateType) {
                                 "agent_thought_chunk" -> emit(GeminiUpdate.Thought(text))
-                                "agent_message_chunk" -> emit(GeminiUpdate.MessageChunk(text))
+                                "agent_message_chunk" -> { chunkCount++; emit(GeminiUpdate.MessageChunk(text)) }
                             }
                         } catch (e: Exception) {
                             Timber.w("GeminiRepo: parse error: %s", e.message)
                         }
                     }
                 }
+                Timber.d("GeminiRepo: sendNativePrompt — stream complete (%d message chunks)", chunkCount)
             }
         } catch (e: Exception) {
             Timber.e(e, "GeminiRepo: Stream FAILED")
@@ -84,6 +87,7 @@ class GeminiRepository @Inject constructor(
      * Fetch the list of native Gemini sessions from the File Bridge.
      */
     suspend fun fetchSessions(): List<GeminiSessionInfo> = withContext(Dispatchers.IO) {
+        Timber.d("GeminiRepo: fetchSessions — requesting")
         val body = networkClient.get("gemini/sessions") ?: return@withContext emptyList()
         try {
             val json = JSONObject(body)
@@ -99,6 +103,7 @@ class GeminiRepository @Inject constructor(
                     preview = item.optString("preview", "")
                 ))
             }
+            Timber.d("GeminiRepo: fetchSessions — got %d sessions", result.size)
             result
         } catch (e: Exception) {
             Timber.e(e, "GeminiRepo: fetchSessions FAILED")
@@ -110,11 +115,14 @@ class GeminiRepository @Inject constructor(
      * Fetch the full details of a specific native Gemini session.
      */
     suspend fun fetchSessionDetail(sessionId: String): JSONObject? = withContext(Dispatchers.IO) {
+        Timber.d("GeminiRepo: fetchSessionDetail — requesting (session=%s)", sessionId.take(8))
         val body = networkClient.get("gemini/sessions/$sessionId") ?: return@withContext null
         try {
-            JSONObject(body)
+            val json = JSONObject(body)
+            Timber.d("GeminiRepo: fetchSessionDetail — got response for %s", sessionId.take(8))
+            json
         } catch (e: Exception) {
-            Timber.e(e, "GeminiRepo: fetchSessionDetail FAILED")
+            Timber.e(e, "GeminiRepo: fetchSessionDetail FAILED for %s", sessionId.take(8))
             null
         }
     }

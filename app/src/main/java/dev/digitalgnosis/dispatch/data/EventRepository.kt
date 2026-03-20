@@ -31,7 +31,8 @@ class EventRepository @Inject constructor(
             if (eventType != null) append("&event_type=$eventType")
             if (department != null) append("&department=$department")
         }
-        
+        Timber.d("EventRepo: fetchEvents — requesting (type=%s, dept=%s, limit=%d, offset=%d)",
+            eventType, department, limit, offset)
         val body = client.get("feed?$params") ?: return EventListResult(emptyList(), 0)
 
         return try {
@@ -52,9 +53,11 @@ class EventRepository @Inject constructor(
                     summary = e.optString("summary", ""),
                 ))
             }
-            EventListResult(events, json.optInt("total", events.size))
+            val result = EventListResult(events, json.optInt("total", events.size))
+            Timber.d("EventRepo: fetchEvents — got %d events (total=%d)", result.events.size, result.total)
+            result
         } catch (e: Exception) {
-            Timber.e(e, "EventFeed: parse failed")
+            Timber.e(e, "EventRepo: fetchEvents parse failed")
             EventListResult(emptyList(), 0)
         }
     }

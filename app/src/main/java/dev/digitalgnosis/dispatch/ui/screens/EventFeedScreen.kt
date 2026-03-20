@@ -11,20 +11,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Compress
 import androidx.compose.material.icons.filled.FiberManualRecord
-import androidx.compose.material.icons.filled.HourglassEmpty
-import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -42,13 +34,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import dev.digitalgnosis.dispatch.data.OrchestratorEvent
+import dev.digitalgnosis.dispatch.ui.components.cards.EventCard
+import dev.digitalgnosis.dispatch.ui.theme.DgChannelActivity
+import dev.digitalgnosis.dispatch.ui.theme.DgChannelCmail
+import dev.digitalgnosis.dispatch.ui.theme.DgDeptBoardroom
+import dev.digitalgnosis.dispatch.ui.theme.DgDeptEngineering
+import dev.digitalgnosis.dispatch.ui.theme.DgStatusActive
+import dev.digitalgnosis.dispatch.ui.theme.DgStatusErrorDark
+import dev.digitalgnosis.dispatch.ui.theme.DgStatusNeutral
+import dev.digitalgnosis.dispatch.ui.theme.DgStatusWarning
 import dev.digitalgnosis.dispatch.ui.viewmodels.AgentsViewModel
 
 /**
@@ -61,14 +57,14 @@ private data class EventFilter(
 )
 
 private val EVENT_FILTERS = listOf(
-    EventFilter("All", null, Color(0xFF9E9E9E)),
-    EventFilter("Ended", "session_ended", Color(0xFFFFA726)),
-    EventFilter("Failed", "tool_failed", Color(0xFFE53935)),
-    EventFilter("Idle", "agent_idle", Color(0xFFAB47BC)),
-    EventFilter("Compact", "session_compacting", Color(0xFF42A5F5)),
-    EventFilter("Tools", "tool_used", Color(0xFF4CAF50)),
-    EventFilter("Dispatch", "dispatch_message", Color(0xFF26A69A)),
-    EventFilter("Cmail", "cmail_message", Color(0xFF5C6BC0)),
+    EventFilter("All", null, DgStatusNeutral),
+    EventFilter("Ended", "session_ended", DgStatusWarning),
+    EventFilter("Failed", "tool_failed", DgStatusErrorDark),
+    EventFilter("Idle", "agent_idle", DgDeptBoardroom),
+    EventFilter("Compact", "session_compacting", DgDeptEngineering),
+    EventFilter("Tools", "tool_used", DgStatusActive),
+    EventFilter("Dispatch", "dispatch_message", DgChannelActivity),
+    EventFilter("Cmail", "cmail_message", DgChannelCmail),
 )
 
 /**
@@ -177,145 +173,5 @@ fun EventFeedScreen(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun EventCard(event: OrchestratorEvent) {
-    val (icon, accentColor) = eventVisuals(event.eventType)
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 2.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = accentColor.copy(alpha = 0.08f),
-        ),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            // Event type icon
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier
-                    .size(16.dp)
-                    .padding(top = 2.dp),
-                tint = accentColor,
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Content
-            Column(modifier = Modifier.weight(1f)) {
-                // Department + event type label
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Text(
-                        text = event.department.ifBlank { "system" },
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = accentColor,
-                    )
-                    Text(
-                        text = eventLabel(event.eventType),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    )
-                }
-
-                // Summary
-                if (event.summary.isNotBlank()) {
-                    Text(
-                        text = event.summary,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontFamily = FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-
-            // Timestamp
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = formatEventTime(event.timestamp),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-            )
-        }
-    }
-}
-
-/**
- * Map event type to icon and accent color.
- */
-private fun eventVisuals(eventType: String): Pair<ImageVector, Color> {
-    return when (eventType) {
-        "tool_used" -> Icons.Default.Build to Color(0xFF4CAF50)          // Green
-        "tool_failed" -> Icons.Default.Close to Color(0xFFE53935)        // Red
-        "session_ended" -> Icons.Default.PowerSettingsNew to Color(0xFFFFA726) // Orange
-        "session_compacting" -> Icons.Default.Compress to Color(0xFF42A5F5) // Blue
-        "agent_idle" -> Icons.Default.HourglassEmpty to Color(0xFFAB47BC)  // Purple
-        "dispatch_message" -> Icons.Default.FiberManualRecord to Color(0xFF26A69A) // Teal
-        "cmail_message", "cmail_reply" -> Icons.Default.FiberManualRecord to Color(0xFF5C6BC0) // Indigo
-        "session_started" -> Icons.Default.FiberManualRecord to Color(0xFF66BB6A) // Light green
-        "session_completed" -> Icons.Default.FiberManualRecord to Color(0xFF78909C) // Blue grey
-        else -> Icons.Default.FiberManualRecord to Color(0xFF9E9E9E)     // Grey
-    }
-}
-
-/**
- * Human-readable label for event types.
- */
-private fun eventLabel(eventType: String): String {
-    return when (eventType) {
-        "tool_used" -> "tool"
-        "tool_failed" -> "FAILED"
-        "session_ended" -> "ended"
-        "session_compacting" -> "compacting"
-        "agent_idle" -> "idle"
-        "dispatch_message" -> "dispatch"
-        "cmail_message" -> "cmail"
-        "cmail_reply" -> "reply"
-        "session_started" -> "started"
-        "session_completed" -> "completed"
-        else -> eventType
-    }
-}
-
-/**
- * Compact time display for event timestamps.
- */
-private fun formatEventTime(iso: String): String {
-    if (iso.isBlank()) return ""
-    return try {
-        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
-        sdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
-        val date = sdf.parse(iso.substringBefore('.').substringBefore('Z')) ?: return ""
-
-        val now = System.currentTimeMillis()
-        val diff = now - date.time
-        val minutes = diff / (1000 * 60)
-        val hours = diff / (1000 * 60 * 60)
-
-        when {
-            minutes < 1 -> "now"
-            minutes < 60 -> "${minutes}m"
-            hours < 24 -> "${hours}h"
-            else -> {
-                val display = java.text.SimpleDateFormat("HH:mm", java.util.Locale.US)
-                display.timeZone = java.util.TimeZone.getDefault()
-                display.format(date)
-            }
-        }
-    } catch (_: Exception) {
-        ""
     }
 }

@@ -13,6 +13,7 @@ import dev.digitalgnosis.dispatch.R
 import dev.digitalgnosis.dispatch.config.TailscaleConfig
 import dev.digitalgnosis.dispatch.data.ChatBubble
 import dev.digitalgnosis.dispatch.data.ChatBubbleRepository
+import dev.digitalgnosis.dispatch.data.CmailEventBus
 import dev.digitalgnosis.dispatch.data.MessageChunk
 import dev.digitalgnosis.dispatch.data.MessageRepository
 import kotlinx.coroutines.*
@@ -24,7 +25,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
-import kotlinx.serialization.json.jsonObject
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -78,6 +78,7 @@ class SseConnectionService : Service() {
 
     @Inject lateinit var chatBubbleRepository: ChatBubbleRepository
     @Inject lateinit var messageRepository: MessageRepository
+    @Inject lateinit var cmailEventBus: CmailEventBus
 
     private var eventSource: EventSource? = null
     private var lastEventId: String? = null
@@ -88,6 +89,7 @@ class SseConnectionService : Service() {
     private val json = Json { ignoreUnknownKeys = true }
 
     private val client = OkHttpClient.Builder()
+        .addInterceptor(FileBridgeAuthInterceptor())
         .connectTimeout(20, TimeUnit.SECONDS)  // 20s — Tailscale cold-start after Doze can take 10-15s
         .readTimeout(0, TimeUnit.SECONDS)  // SSE: no read timeout
         .retryOnConnectionFailure(true)
@@ -217,12 +219,19 @@ class SseConnectionService : Service() {
                         }
                     }
 
-                    // ── Thread refresh signals ──
-                    "dispatch_message", "cmail_message", "cmail_reply" -> {
+                    // ── Cmail thread updates → CmailEventBus ──
+                    "cmail_message", "cmail_reply" -> {
                         val threadId = envelope.threadId
                         if (threadId.isNotBlank()) {
-                            messageRepository.emitThreadRefresh(threadId)
+                            cmailEventBus.emit(threadId)
                         }
+                    }
+
+                    // ── Dispatch voice signals — no SSE action needed ──
+                    // Full voice payload arrives via FCM push to DispatchFcmService.
+                    // The SSE event is informational only.
+                    "dispatch_message" -> {
+                        Timber.v("SseConnectionService: dispatch_message SSE (thread=%s)", envelope.threadId)
                     }
 
                     // ── UI refresh signals ──

@@ -18,13 +18,10 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -101,20 +98,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/** Hoisted draft state for the Send tab. */
-class SendDraft {
-    var messageText: String = ""
-    var selectedDepts: Set<String> = emptySet()
-    var invokeAgent: Boolean = true
-    var selectedThreadId: String? = null
-    data class DraftFile(val name: String, val bytes: ByteArray)
-    var attachedFiles: List<DraftFile> = emptyList()
-    fun clearDraft() {
-        messageText = ""
-        attachedFiles = emptyList()
-        selectedThreadId = null
-    }
-}
 
 private data class LiveSessionParams(
     val department: String,

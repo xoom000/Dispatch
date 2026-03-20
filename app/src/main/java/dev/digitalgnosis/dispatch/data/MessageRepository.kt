@@ -26,117 +26,168 @@ data class MessageChunk(
 )
 
 /**
- * Central message store backed by Room for persistence.
+ * Repository for incoming FCM voice notifications.
+ *
+ * Owns the in-memory message list and the earbud navigation cursor.
+ * Backed by Room for persistence across app restarts.
  */
 @Singleton
-class MessageRepository @Inject constructor(
+class VoiceNotificationRepository @Inject constructor(
     private val messageDao: MessageDao,
 ) {
-
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    private val _messages = MutableStateFlow<List<DispatchMessage>>(emptyList())
-    val messages: StateFlow<List<DispatchMessage>> = _messages.asStateFlow()
+    private val _notifications = MutableStateFlow<List<VoiceNotification>>(emptyList())
+    val notifications: StateFlow<List<VoiceNotification>> = _notifications.asStateFlow()
 
-    private val _liveChunks = MutableSharedFlow<MessageChunk>(replay = 0, extraBufferCapacity = 64)
-    val liveChunks: SharedFlow<MessageChunk> = _liveChunks.asSharedFlow()
-
-    private val _messageCursor = AtomicInteger(0)
-
-    private val _threadRefreshEvents = MutableSharedFlow<String>(replay = 0, extraBufferCapacity = 8)
-    val threadRefreshEvents: SharedFlow<String> = _threadRefreshEvents.asSharedFlow()
+    private val _cursor = AtomicInteger(0)
 
     init {
         scope.launch {
             try {
                 val entities = messageDao.getAll()
-                val messages = entities.map { it.toDomainModel() }
-                _messages.value = messages
-                Timber.i("MessageRepository: loaded %d messages from Room", messages.size)
+                val incoming = entities
+                    .filter { !it.isOutgoing }
+                    .map { it.toVoiceNotification() }
+                _notifications.value = incoming
+                Timber.i("VoiceNotificationRepository: loaded %d notifications from Room", incoming.size)
             } catch (e: Exception) {
-                Timber.e(e, "MessageRepository: failed to load from Room")
+                Timber.e(e, "VoiceNotificationRepository: failed to load from Room")
             }
         }
     }
 
-    fun emitLiveChunk(chunk: MessageChunk) {
-        _liveChunks.tryEmit(chunk)
-    }
-
-    fun addMessage(message: DispatchMessage) {
-        val updated = listOf(message) + _messages.value
-        _messages.value = updated.take(MAX_MESSAGES)
+    fun add(notification: VoiceNotification) {
+        val updated = listOf(notification) + _notifications.value
+        _notifications.value = updated.take(MAX_MESSAGES)
+        _cursor.set(0)
 
         scope.launch {
             try {
-                messageDao.insert(message.toEntity())
+                messageDao.insert(notification.toEntity())
                 messageDao.trimToCount(MAX_MESSAGES)
             } catch (e: Exception) {
-                Timber.e(e, "MessageRepository: failed to persist message from %s", message.sender)
+                Timber.e(e, "VoiceNotificationRepository: failed to persist from %s", notification.sender)
             }
         }
-
-        if (!message.isOutgoing) {
-            resetCursor()
-        }
-
-        if (!message.isOutgoing && !message.threadId.isNullOrBlank()) {
-            _threadRefreshEvents.tryEmit(message.threadId)
-        }
     }
 
-    fun emitThreadRefresh(threadId: String) {
-        _threadRefreshEvents.tryEmit(threadId)
+    fun getAtCursor(): VoiceNotification? {
+        val list = _notifications.value
+        val idx = _cursor.get()
+        return list.getOrNull(idx)
     }
 
-    fun getMessages(): List<DispatchMessage> = _messages.value
+    val cursorIndex: Int get() = _cursor.get()
 
-    // ── Earbud Navigation Cursor ────────────────────────
-
-    fun getIncomingMessages(): List<DispatchMessage> =
-        _messages.value.filter { !it.isOutgoing }
-
-    val messageCursorIndex: Int get() = _messageCursor.get()
-
-    fun getMessageAtCursor(): DispatchMessage? {
-        val incoming = getIncomingMessages()
-        val idx = _messageCursor.get()
-        return incoming.getOrNull(idx)
+    fun advanceCursor(): VoiceNotification? {
+        val list = _notifications.value
+        val newIdx = _cursor.get() + 1
+        if (newIdx >= list.size) return null
+        _cursor.set(newIdx)
+        return list[newIdx]
     }
 
-    fun advanceCursor(): DispatchMessage? {
-        val incoming = getIncomingMessages()
-        val newIdx = _messageCursor.get() + 1
-        if (newIdx >= incoming.size) return null
-        _messageCursor.set(newIdx)
-        return incoming[newIdx]
-    }
-
-    fun retreatCursor(): DispatchMessage? {
-        val incoming = getIncomingMessages()
-        val newIdx = _messageCursor.get() - 1
+    fun retreatCursor(): VoiceNotification? {
+        val list = _notifications.value
+        val newIdx = _cursor.get() - 1
         if (newIdx < 0) return null
-        _messageCursor.set(newIdx)
-        return incoming[newIdx]
+        _cursor.set(newIdx)
+        return list[newIdx]
     }
 
     fun resetCursor() {
-        _messageCursor.set(0)
+        _cursor.set(0)
     }
 
-    fun clearMessages() {
-        _messages.value = emptyList()
+    fun clear() {
+        _notifications.value = emptyList()
         scope.launch {
             try {
                 messageDao.deleteAll()
-                Timber.i("MessageRepository: cleared all messages from Room")
             } catch (e: Exception) {
-                Timber.e(e, "MessageRepository: failed to clear Room")
+                Timber.e(e, "VoiceNotificationRepository: failed to clear Room")
             }
         }
     }
 
     companion object {
         private const val MAX_MESSAGES = 100
+    }
+}
+
+/**
+ * Repository for outgoing cmail messages sent by Nigel.
+ *
+ * Keeps a recent outbox in memory for the UI. Backed by Room.
+ */
+@Singleton
+class CmailOutboxRepository @Inject constructor(
+    private val messageDao: MessageDao,
+) {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    private val _outbox = MutableStateFlow<List<CmailOutboxItem>>(emptyList())
+    val outbox: StateFlow<List<CmailOutboxItem>> = _outbox.asStateFlow()
+
+    init {
+        scope.launch {
+            try {
+                val entities = messageDao.getAll()
+                val outgoing = entities
+                    .filter { it.isOutgoing }
+                    .map { it.toCmailOutboxItem() }
+                _outbox.value = outgoing
+                Timber.i("CmailOutboxRepository: loaded %d outbox items from Room", outgoing.size)
+            } catch (e: Exception) {
+                Timber.e(e, "CmailOutboxRepository: failed to load from Room")
+            }
+        }
+    }
+
+    fun add(item: CmailOutboxItem) {
+        val updated = listOf(item) + _outbox.value
+        _outbox.value = updated.take(MAX_OUTBOX)
+
+        scope.launch {
+            try {
+                messageDao.insert(item.toEntity())
+                messageDao.trimToCount(MAX_OUTBOX)
+            } catch (e: Exception) {
+                Timber.e(e, "CmailOutboxRepository: failed to persist send to %s", item.department)
+            }
+        }
+    }
+
+    companion object {
+        private const val MAX_OUTBOX = 100
+    }
+}
+
+/**
+ * Central message store — kept for streaming/live chunk relay and thread refresh signals.
+ *
+ * Voice notifications live in VoiceNotificationRepository.
+ * Outgoing cmail items live in CmailOutboxRepository.
+ * This class owns only the cross-cutting signals that don't belong to either domain.
+ */
+@Singleton
+class MessageRepository @Inject constructor(
+    private val messageDao: MessageDao,
+) {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    private val _liveChunks = MutableSharedFlow<MessageChunk>(replay = 0, extraBufferCapacity = 64)
+    val liveChunks: SharedFlow<MessageChunk> = _liveChunks.asSharedFlow()
+
+    private val _threadRefreshEvents = MutableSharedFlow<String>(replay = 0, extraBufferCapacity = 8)
+    val threadRefreshEvents: SharedFlow<String> = _threadRefreshEvents.asSharedFlow()
+
+    fun emitLiveChunk(chunk: MessageChunk) {
+        _liveChunks.tryEmit(chunk)
+    }
+
+    fun emitThreadRefresh(threadId: String) {
+        _threadRefreshEvents.tryEmit(threadId)
     }
 }

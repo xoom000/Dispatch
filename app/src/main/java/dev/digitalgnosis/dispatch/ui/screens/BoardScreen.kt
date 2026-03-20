@@ -14,46 +14,30 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Circle
-import androidx.compose.material.icons.filled.Forum
-import androidx.compose.material.icons.filled.PauseCircle
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import dev.digitalgnosis.dispatch.data.Whiteboard
-import dev.digitalgnosis.dispatch.data.WhiteboardTask
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import timber.log.Timber
-
 import androidx.compose.runtime.collectAsState
 import androidx.hilt.navigation.compose.hiltViewModel
+import dev.digitalgnosis.dispatch.ui.components.cards.TaskCard
+import dev.digitalgnosis.dispatch.ui.components.cards.taskStatusColor
 import dev.digitalgnosis.dispatch.ui.viewmodels.BoardViewModel
+import timber.log.Timber
 
 @Composable
 fun BoardScreen(
@@ -164,7 +148,7 @@ fun BoardScreen(
                     // Active tasks
                     if (active.isNotEmpty()) {
                         item {
-                            SectionHeader("Active", active.size, statusColor("active"))
+                            SectionHeader("Active", active.size, taskStatusColor("active"))
                         }
                         items(active, key = { it.id }) { task ->
                             TaskCard(
@@ -177,7 +161,7 @@ fun BoardScreen(
                     // Blocked tasks
                     if (blocked.isNotEmpty()) {
                         item {
-                            SectionHeader("Blocked", blocked.size, statusColor("blocked"))
+                            SectionHeader("Blocked", blocked.size, taskStatusColor("blocked"))
                         }
                         items(blocked, key = { it.id }) { task ->
                             TaskCard(
@@ -190,7 +174,7 @@ fun BoardScreen(
                     // Parked tasks
                     if (parked.isNotEmpty()) {
                         item {
-                            SectionHeader("Parked", parked.size, statusColor("parked"))
+                            SectionHeader("Parked", parked.size, taskStatusColor("parked"))
                         }
                         items(parked, key = { it.id }) { task ->
                             TaskCard(
@@ -214,7 +198,7 @@ fun BoardScreen(
                                     text = if (showDone) "Done ▾" else "Done ▸",
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = statusColor("done"),
+                                    color = taskStatusColor("done"),
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
@@ -265,172 +249,4 @@ private fun SectionHeader(label: String, count: Int, color: Color) {
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
         )
     }
-}
-
-@Composable
-private fun TaskCard(
-    task: WhiteboardTask,
-    onTapThread: ((String) -> Unit)? = null,
-    dimmed: Boolean = false,
-) {
-    val alpha = if (dimmed) 0.5f else 1f
-    val hasThread = task.threadId != null && onTapThread != null
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 2.dp)
-            .then(
-                if (hasThread) Modifier.clickable { onTapThread?.invoke(task.threadId!!) }
-                else Modifier
-            ),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha * 0.7f),
-        ),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            // Status icon
-            Icon(
-                imageVector = statusIcon(task.status),
-                contentDescription = task.status,
-                tint = statusColor(task.status).copy(alpha = alpha),
-                modifier = Modifier
-                    .size(18.dp)
-                    .padding(top = 2.dp),
-            )
-
-            Spacer(modifier = Modifier.width(10.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                // Title row with priority dot
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (task.priority == "high") {
-                        Surface(
-                            shape = CircleShape,
-                            color = Color(0xFFFF5252),
-                            modifier = Modifier.size(6.dp),
-                        ) {}
-                        Spacer(modifier = Modifier.width(6.dp))
-                    }
-                    Text(
-                        text = task.title,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = if (dimmed) FontWeight.Normal else FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // Assignee badge + thread indicator
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    AssigneeBadge(task.assignee, alpha)
-
-                    if (hasThread) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Icon(
-                            imageVector = Icons.Default.Forum,
-                            contentDescription = "Has thread",
-                            tint = MaterialTheme.colorScheme.primary.copy(alpha = alpha * 0.7f),
-                            modifier = Modifier.size(14.dp),
-                        )
-                    }
-
-                    // Updated time
-                    val age = formatTaskAge(task.updated)
-                    if (age.isNotBlank()) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = age,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha * 0.5f),
-                        )
-                    }
-                }
-
-                // Note
-                if (!task.note.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = task.note,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha * 0.8f),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun AssigneeBadge(assignee: String, alpha: Float) {
-    val color = assigneeColor(assignee)
-    Surface(
-        shape = MaterialTheme.shapes.small,
-        color = color.copy(alpha = alpha * 0.2f),
-    ) {
-        Text(
-            text = assignee,
-            style = MaterialTheme.typography.labelSmall,
-            color = color.copy(alpha = alpha),
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-        )
-    }
-}
-
-// ─── Styling ─────────────────────────────────────────────────────────────────
-
-private fun statusColor(status: String): Color = when (status) {
-    "active" -> Color(0xFF4CAF50)    // Green
-    "blocked" -> Color(0xFFFF5252)   // Red
-    "done" -> Color(0xFF9E9E9E)      // Gray
-    "parked" -> Color(0xFFFFCA28)    // Yellow
-    else -> Color(0xFF9E9E9E)
-}
-
-private fun statusIcon(status: String) = when (status) {
-    "active" -> Icons.Default.Circle
-    "blocked" -> Icons.Default.Warning
-    "done" -> Icons.Default.CheckCircle
-    "parked" -> Icons.Default.PauseCircle
-    else -> Icons.Default.Circle
-}
-
-private fun assigneeColor(assignee: String): Color = when (assignee) {
-    "engineering" -> Color(0xFF42A5F5)
-    "dispatch" -> Color(0xFF66BB6A)
-    "boardroom", "ceo" -> Color(0xFFAB47BC)
-    "hunter" -> Color(0xFFFF7043)
-    "research" -> Color(0xFF26C6DA)
-    "it" -> Color(0xFF78909C)
-    "nigel" -> Color(0xFFFFCA28)
-    else -> Color(0xFF90A4AE)
-}
-
-/** Parse ISO timestamp and return human-readable age. */
-private fun formatTaskAge(iso: String): String {
-    if (iso.isBlank()) return ""
-    return try {
-        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US)
-        sdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
-        val date = sdf.parse(iso) ?: return ""
-        val ageMs = System.currentTimeMillis() - date.time
-        val minutes = ageMs / (1000 * 60)
-        val hours = ageMs / (1000 * 60 * 60)
-        val days = ageMs / (1000 * 60 * 60 * 24)
-        when {
-            minutes < 1 -> "just now"
-            minutes < 60 -> "${minutes}m ago"
-            hours < 24 -> "${hours}h ago"
-            hours < 48 -> "yesterday"
-            else -> "${days}d ago"
-        }
-    } catch (_: Exception) { "" }
 }
