@@ -191,7 +191,14 @@ class DispatchPlaybackService : MediaSessionService() {
             player = workaroundPlayer,
             onVoiceReplyRequested = { startVoiceReply() },
             onUserPaused = { userPaused = true },
-            onUserPlayed = { userPaused = false },
+            onUserPlayed = {
+                userPaused = false
+                // Drain the queue now that the user has explicitly resumed. Messages that arrived
+                // while paused were held in messageQueue rather than auto-played. Start the next one.
+                if (player?.isPlaying == false) {
+                    playNextFromQueue()
+                }
+            },
         )
 
         mediaSession = MediaSession.Builder(this, dispatchPlayer).build()
@@ -394,8 +401,12 @@ class DispatchPlaybackService : MediaSessionService() {
     // ── Streaming TTS Playback ─────────────────────────────────────
 
     /**
-     * Queue a streaming TTS message. If the player is idle/ended, play immediately.
-     * If already playing, hold in messageQueue — STATE_ENDED triggers the next one.
+     * Queue a streaming TTS message. If the player is idle/ended AND the user has not
+     * explicitly paused, play immediately. If already playing, or if the user paused,
+     * hold in messageQueue.
+     *
+     * When paused: messages accumulate in the queue. The queue drains when the user
+     * explicitly resumes via play() (earbud tap, notification button, or UI).
      *
      * We do NOT add multiple streaming items to ExoPlayer's playlist because
      * ExoPlayer eagerly pre-buffers the next item's DataSource, consuming the
@@ -414,14 +425,15 @@ class DispatchPlaybackService : MediaSessionService() {
     ) {
         val p = player ?: return
 
-        if (p.playbackState == Player.STATE_IDLE || p.playbackState == Player.STATE_ENDED) {
-            // Player is free — play immediately
+        val playerFree = p.playbackState == Player.STATE_IDLE || p.playbackState == Player.STATE_ENDED
+        if (playerFree && !userPaused) {
+            // Player is free and user has not paused — play immediately
             playStreamingItem(text, voice, sender, traceId, fcmReceiveTime)
         } else {
-            // Player is busy — hold for later
+            // Player is busy, or user explicitly paused — hold for later
             messageQueue.addLast(PendingMessage(text, voice, sender, traceId, fcmReceiveTime))
-            Timber.i("[trace:%s] DispatchPlaybackService: queued for later, %d in queue",
-                traceId ?: "none", messageQueue.size)
+            Timber.i("[trace:%s] DispatchPlaybackService: queued for later (userPaused=%b), %d in queue",
+                traceId ?: "none", userPaused, messageQueue.size)
         }
     }
 
@@ -465,10 +477,18 @@ class DispatchPlaybackService : MediaSessionService() {
         p.play()
 
         // Track which notification is currently playing so voice reply targets the right sender.
-        // The cursor resets to 0 (newest) on every add(), so without this, a queued message N
-        // arriving while message M is playing would cause double-tap to reply to the wrong sender.
-        val playingNotification = voiceNotificationRepository.notifications.value
-            .firstOrNull { it.sender.equals(sender, ignoreCase = true) }
+        // Match by traceId first (unique per message) to correctly identify the playing notification
+        // even when multiple messages from the same sender arrive in a burst. Fall back to the
+        // most-recently-received notification from that sender when traceId is absent.
+        val candidates = voiceNotificationRepository.notifications.value
+        val playingNotification = if (!traceId.isNullOrBlank()) {
+            candidates.firstOrNull { it.traceId == traceId }
+                ?: candidates.filter { it.sender.equals(sender, ignoreCase = true) }
+                    .maxByOrNull { it.receivedAt }
+        } else {
+            candidates.filter { it.sender.equals(sender, ignoreCase = true) }
+                .maxByOrNull { it.receivedAt }
+        }
         voiceNotificationRepository.setPlayingNotification(playingNotification)
 
         val queueMs = if (fcmReceiveTime > 0) System.currentTimeMillis() - fcmReceiveTime else -1L
@@ -476,8 +496,21 @@ class DispatchPlaybackService : MediaSessionService() {
             traceId ?: "none", pendingCount.get(), messageQueue.size, queueMs)
     }
 
-    /** Play the next message from the queue, if any. Must be called on main thread. */
+    /**
+     * Play the next message from the queue, if any.
+     *
+     * Respects [userPaused]: if the user has explicitly paused, leaves the queue intact
+     * so the next message plays when they resume. Called both from [PlayerEventListener]
+     * on STATE_ENDED and from the [onUserPlayed] resume callback.
+     *
+     * Must be called on main thread.
+     */
     private fun playNextFromQueue() {
+        if (userPaused) {
+            Timber.i("DispatchPlaybackService: queue drain deferred — user is paused (%d waiting)",
+                messageQueue.size)
+            return
+        }
         val next = messageQueue.removeFirstOrNull() ?: return
         Timber.i("[trace:%s] DispatchPlaybackService: playing next from queue, %d remaining",
             next.traceId ?: "none", messageQueue.size)

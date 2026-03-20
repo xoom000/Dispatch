@@ -82,6 +82,8 @@ class DispatchFcmService : FirebaseMessagingService() {
         Timber.i("FCM payload: sender=%s, priority=%s, msgLen=%d, voice=%s, files=%d, thread=%s",
             sender, priority, messageText.length, voice ?: "none", totalFiles, threadId ?: "none")
 
+        val traceId = data["trace_id"]
+
         val notification = VoiceNotification(
             sender = sender,
             message = messageText,
@@ -89,6 +91,7 @@ class DispatchFcmService : FirebaseMessagingService() {
             timestamp = timestamp,
             priority = priority,
             cmailThreadId = threadId,
+            traceId = traceId,
             fileUrl = fileUrl,
             fileName = fileName,
             fileSize = fileSize,
@@ -105,11 +108,6 @@ class DispatchFcmService : FirebaseMessagingService() {
         // through the entire download + playback pipeline.
         val spokenText = "$sender says: $messageText"
         val resolvedVoice = voice ?: VoiceMap.voiceFor(sender)
-
-        Timber.i("FCM -> starting DispatchPlaybackService at +%dms: voice=%s",
-            System.currentTimeMillis() - receiveTime, resolvedVoice)
-
-        val traceId = data["trace_id"]
 
         try {
             val serviceIntent = DispatchPlaybackService.createIntent(
