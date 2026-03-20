@@ -1,94 +1,131 @@
 modules:
+  appFunctions:
+    status: built
+    path: appFunctions/quick-reference.md
+    tags: [ai, agents, gemini, provider, annotations, android16]
+    version: 1.0.0-alpha08
+    context7_id: "/androidx/androidx"
+    source: "https://developer.android.com/ai/appfunctions"
+
   media3:
     status: built
     path: media3/samples
     tags: [exoplayer, streaming, datasource, extractors, audio]
     version: 1.9.2
+    context7_id: "/websites/developer_android_media"
 
   hilt:
-    status: empty
-    path: hilt/samples
-    tags: [di, entrypoints, modules, viewmodel]
+    status: built
+    path: hilt/quick-reference.md
+    tags: [di, entrypoints, modules, viewmodel, ksp]
     version: 2.57.1
+    context7_id: "/websites/dagger_dev_hilt"
 
   compose:
-    status: empty
-    path: compose/samples
-    tags: [ui, material3, state, theming, layout]
+    status: built
+    path: compose/quick-reference.md
+    tags: [ui, material3, state, theming, layout, scaffold]
     version: "2026.01.01"
+    context7_id: "/websites/developer_android_develop_ui_compose_components"
 
   okhttp:
-    status: empty
-    path: okhttp/samples
-    tags: [http, sse, interceptors, websocket]
+    status: built
+    path: okhttp/quick-reference.md
+    tags: [http, sse, interceptors, websocket, streaming]
     version: 4.12.0
+    context7_id: "/square/okhttp"
 
   room:
-    status: empty
-    path: room/samples
-    tags: [database, dao, migrations, typeconverters]
+    status: built
+    path: room/quick-reference.md
+    tags: [database, dao, migrations, typeconverters, flow]
     version: 2.8.4
+    context7_id: "/websites/developer_android_guide"
 
   fcm:
-    status: empty
-    path: fcm/samples
-    tags: [push, notifications, firebase, messaging]
+    status: built
+    path: fcm/quick-reference.md
+    tags: [push, notifications, firebase, messaging, token]
     version: 33.7.0
+    context7_id: "/websites/firebase_google"
 
   coroutines:
-    status: empty
-    path: coroutines/samples
-    tags: [flows, scopes, dispatchers, concurrency, channels]
+    status: built
+    path: coroutines/quick-reference.md
+    tags: [flows, scopes, dispatchers, concurrency, stateflow, sharedflow]
     version: 1.8.1
+    context7_id: "/kotlin/kotlinx.coroutines"
 
   foreground-services:
-    status: empty
-    path: foreground-services/samples
-    tags: [notifications, service-lifecycle, android15, mediasession]
+    status: built
+    path: foreground-services/quick-reference.md
+    tags: [notifications, service-lifecycle, android14, android15, mediasession]
+    context7_id: "/websites/developer_android_guide"
 
   kotlinx-serialization:
-    status: empty
-    path: kotlinx-serialization/samples
-    tags: [json, encoding, decoding, custom-serializers]
+    status: built
+    path: kotlinx-serialization/quick-reference.md
+    tags: [json, encoding, decoding, sealed-class, polymorphism]
     version: 1.6.3
+    context7_id: "/kotlin/kotlinx.serialization"
 
   workmanager:
-    status: empty
-    path: workmanager/samples
-    tags: [background, constraints, periodic, chained]
+    status: built
+    path: workmanager/quick-reference.md
+    tags: [background, constraints, periodic, chained, coroutineworker]
     version: 2.9.1
+    context7_id: "/websites/developer_android_guide"
 
   navigation:
-    status: empty
-    path: navigation/samples
-    tags: [routes, arguments, deeplinks, compose-nav]
+    status: built
+    path: navigation/quick-reference.md
+    tags: [routes, arguments, deeplinks, compose-nav, type-safe]
     version: 2.8.4
+    context7_id: "/websites/developer_android_guide"
 
   datastore:
-    status: empty
-    path: datastore/samples
-    tags: [preferences, proto, migration]
-    version: 1.1.1
+    status: built
+    path: datastore/quick-reference.md
+    tags: [preferences, flow, async, migration]
+    version: 1.2.1
+    context7_id: "/websites/developer_android_jetpack_androidx"
 
   coil:
-    status: empty
-    path: coil/samples
-    tags: [images, compose, caching, okhttp]
+    status: built
+    path: coil/quick-reference.md
+    tags: [images, compose, caching, okhttp, asyncimage]
     version: 3.0.4
+    context7_id: "/coil-kt/coil"
 
   retrofit:
-    status: empty
-    path: retrofit/samples
-    tags: [rest, converters, interceptors]
+    status: built
+    path: retrofit/quick-reference.md
+    tags: [rest, converters, interceptors, suspend, streaming]
     version: 2.11.0
+    context7_id: "/square/retrofit"
 
   accessibility:
-    status: empty
+    status: deprecated
     path: accessibility/samples
     tags: [a11y, node-traversal, events, service]
+    note: "DEPRECATED — Android 17 blocking non-a11y automation. Use appFunctions instead."
 
   security-crypto:
-    status: empty
-    path: security-crypto/samples
-    tags: [encryption, keystore, sharedprefs]
+    status: built
+    path: security-crypto/quick-reference.md
+    tags: [encryption, keystore, sharedprefs, encryptedfile]
     version: 1.1.0-alpha06
+    context7_id: "/websites/developer_android_guide"
+
+  jetchat-reference:
+    status: built
+    path: jetchat-reference/Jetchat/
+    tags: [compose, chat-ui, reference-app, google-sample]
+    note: "Google's Jetchat sample — sparse cloned for UI patterns"
+
+  lsp:
+    status: built
+    path: lsp/quick-reference.md
+    tags: [code-intelligence, navigation, definitions, references, call-hierarchy, claude-code]
+    version: "2.1.71"
+    note: "Claude Code built-in LSP tool — not an Android library. New in v2.1.71."
