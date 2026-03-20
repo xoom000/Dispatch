@@ -41,12 +41,17 @@ fun InputBar(
     var isFocused by remember { mutableStateOf(false) }
 
     val borderColor by animateColorAsState(
-        targetValue = if (isFocused) DgNeonCyan else MaterialTheme.colorScheme.outlineVariant,
+        targetValue = if (isFocused) DgNeonCyan else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
         animationSpec = tween(durationMillis = 250),
         label = "inputPillBorderColor"
     )
+    val borderWidth by animateDpAsState(
+        targetValue = if (isFocused) 1.5.dp else 1.dp,
+        animationSpec = tween(durationMillis = 250),
+        label = "inputPillBorderWidth"
+    )
     val glowRadius by animateDpAsState(
-        targetValue = if (isFocused) 3.dp else 0.dp,
+        targetValue = if (isFocused) 4.dp else 0.dp,
         animationSpec = tween(durationMillis = 250),
         label = "inputPillGlowRadius"
     )
@@ -65,9 +70,9 @@ fun InputBar(
                 .weight(1f)
                 .heightIn(min = 48.dp)
                 .neonGlow(color = borderColor, glowRadius = glowRadius, cornerRadius = 24.dp),
-            color = Color.Transparent,
+            color = Color.White.copy(alpha = 0.03f),
             shape = RoundedCornerShape(24.dp),
-            border = BorderStroke(1.dp, borderColor)
+            border = BorderStroke(borderWidth, borderColor)
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
@@ -131,7 +136,7 @@ private fun Modifier.neonGlow(color: Color, glowRadius: Dp, cornerRadius: Dp): M
                         glowRadius.toPx(),
                         0f,
                         0f,
-                        color.copy(alpha = 0.25f).toArgb()
+                        color.copy(alpha = 0.4f).toArgb()
                     )
                 }
             }
