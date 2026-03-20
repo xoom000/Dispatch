@@ -1,12 +1,8 @@
 package dev.digitalgnosis.dispatch
 
 import android.app.Application
-import androidx.appfunctions.service.AppFunctionConfiguration
 import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.HiltAndroidApp
-import dagger.hilt.android.EntryPointAccessors
-import dev.digitalgnosis.dispatch.appfunctions.AppFunctionEntryPoint
-import dev.digitalgnosis.dispatch.appfunctions.DispatchAppFunctions
 import dev.digitalgnosis.dispatch.config.TokenManager
 import dev.digitalgnosis.dispatch.logging.BigNickTimberTree
 import dev.digitalgnosis.dispatch.logging.CrashlyticsTree
@@ -18,25 +14,15 @@ import timber.log.Timber
 import javax.inject.Inject
 
 @HiltAndroidApp
-class DispatchApplication : Application(), AppFunctionConfiguration.Provider {
+class DispatchApplication : Application() {
 
     @Inject lateinit var tokenManager: TokenManager
     @Inject lateinit var modelManager: ModelManager
 
-    override val appFunctionConfiguration: AppFunctionConfiguration
-        get() {
-            val ep = EntryPointAccessors.fromApplication(this, AppFunctionEntryPoint::class.java)
-            return AppFunctionConfiguration.Builder()
-                .addEnclosingClassFactory(DispatchAppFunctions::class.java) {
-                    DispatchAppFunctions(
-                        cmailRepository = ep.cmailRepository(),
-                        sessionRepository = ep.sessionRepository(),
-                        voiceNotificationRepository = ep.voiceNotificationRepository(),
-                        fileBridgeClient = ep.fileBridgeClient(),
-                    )
-                }
-                .build()
-        }
+    // TODO: Re-add AppFunctionConfiguration.Provider when DispatchAppFunctions is ready
+    // See: appfunctions/AppFunctionModels.kt for the data classes (done)
+    //      appfunctions/AppFunctionEntryPoint.kt for the Hilt entry point (done)
+    //      appfunctions/DispatchAppFunctions.kt needs to be rebuilt (removed — had compile errors)
 
     override fun onCreate() {
         super.onCreate()
