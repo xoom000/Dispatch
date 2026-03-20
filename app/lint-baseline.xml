@@ -1,0 +1,2398 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 8.9.1" type="baseline" client="gradle" dependencies="false" name="AGP (8.9.1)" variant="all" version="8.9.1">
+
+    <issue
+        id="ScopedStorage"
+        message="The Google Play store has a policy that limits usage of MANAGE_EXTERNAL_STORAGE"
+        errorLine1="    &lt;uses-permission android:name=&quot;android.permission.MANAGE_EXTERNAL_STORAGE&quot; />"
+        errorLine2="                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="18"
+            column="36"/>
+    </issue>
+
+    <issue
+        id="ComposeViewModelInjection"
+        message="Implicit dependencies of composables should be made explicit.&#xA;Usages of viewModel to acquire a ViewModel should be done in composable default parameters, so that it is more testable and flexible.&#xA;See https://slackhq.github.io/compose-lints/rules/#viewmodels for more information."
+        errorLine1="    val updateManager = viewModel&lt;UpdateStateManager>("
+        errorLine2="    ^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/MainActivity.kt"
+            line="130"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="AndroidGradlePluginVersion"
+        message="A newer version of com.android.application than 8.9.1 is available: 9.1.0. (There is also a newer version of 8.9.𝑥 available, if upgrading to 9.1.0 is difficult: 8.9.3)"
+        errorLine1="agp = &quot;8.9.1&quot;"
+        errorLine2="      ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="2"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="AndroidGradlePluginVersion"
+        message="A newer version of com.android.application than 8.9.1 is available: 9.1.0. (There is also a newer version of 8.9.𝑥 available, if upgrading to 9.1.0 is difficult: 8.9.3)"
+        errorLine1="agp = &quot;8.9.1&quot;"
+        errorLine2="      ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="2"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="AndroidGradlePluginVersion"
+        message="A newer version of com.android.application than 8.9.1 is available: 9.1.0. (There is also a newer version of 8.9.𝑥 available, if upgrading to 9.1.0 is difficult: 8.9.3)"
+        errorLine1="agp = &quot;8.9.1&quot;"
+        errorLine2="      ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="2"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of org.jetbrains.kotlin.android than 2.0.21 is available: 2.3.20"
+        errorLine1="kotlin = &quot;2.0.21&quot;"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="3"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of org.jetbrains.kotlin.android than 2.0.21 is available: 2.3.20"
+        errorLine1="kotlin = &quot;2.0.21&quot;"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="3"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of org.jetbrains.kotlin.android than 2.0.21 is available: 2.3.20"
+        errorLine1="kotlin = &quot;2.0.21&quot;"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="3"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of org.jetbrains.kotlin.plugin.compose than 2.0.21 is available: 2.3.20"
+        errorLine1="kotlin = &quot;2.0.21&quot;"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="3"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of org.jetbrains.kotlin.plugin.compose than 2.0.21 is available: 2.3.20"
+        errorLine1="kotlin = &quot;2.0.21&quot;"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="3"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of org.jetbrains.kotlin.plugin.compose than 2.0.21 is available: 2.3.20"
+        errorLine1="kotlin = &quot;2.0.21&quot;"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="3"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of org.jetbrains.kotlin.plugin.serialization than 2.0.21 is available: 2.3.20"
+        errorLine1="kotlin = &quot;2.0.21&quot;"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="3"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of org.jetbrains.kotlin.plugin.serialization than 2.0.21 is available: 2.3.20"
+        errorLine1="kotlin = &quot;2.0.21&quot;"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="3"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of org.jetbrains.kotlin.plugin.serialization than 2.0.21 is available: 2.3.20"
+        errorLine1="kotlin = &quot;2.0.21&quot;"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="3"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.google.devtools.ksp than 2.0.21-1.0.25 is available: 2.3.6"
+        errorLine1="ksp = &quot;2.0.21-1.0.25&quot;"
+        errorLine2="      ~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="4"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.google.devtools.ksp than 2.0.21-1.0.25 is available: 2.3.6"
+        errorLine1="ksp = &quot;2.0.21-1.0.25&quot;"
+        errorLine2="      ~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="4"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.google.devtools.ksp than 2.0.21-1.0.25 is available: 2.3.6"
+        errorLine1="ksp = &quot;2.0.21-1.0.25&quot;"
+        errorLine2="      ~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="4"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.compose:compose-bom than 2026.01.01 is available: 2026.03.00"
+        errorLine1="composeBom = &quot;2026.01.01&quot;"
+        errorLine2="             ~~~~~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="5"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.compose:compose-bom than 2026.01.01 is available: 2026.03.00"
+        errorLine1="composeBom = &quot;2026.01.01&quot;"
+        errorLine2="             ~~~~~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="5"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.compose:compose-bom than 2026.01.01 is available: 2026.03.00"
+        errorLine1="composeBom = &quot;2026.01.01&quot;"
+        errorLine2="             ~~~~~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="5"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.google.dagger.hilt.android than 2.57.1 is available: 2.59"
+        errorLine1="hilt = &quot;2.57.1&quot;"
+        errorLine2="       ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="6"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.google.dagger.hilt.android than 2.57.1 is available: 2.59"
+        errorLine1="hilt = &quot;2.57.1&quot;"
+        errorLine2="       ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="6"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.google.dagger.hilt.android than 2.57.1 is available: 2.59"
+        errorLine1="hilt = &quot;2.57.1&quot;"
+        errorLine2="       ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="6"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.google.dagger:hilt-android than 2.57.1 is available: 2.59"
+        errorLine1="hilt = &quot;2.57.1&quot;"
+        errorLine2="       ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="6"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.google.dagger:hilt-android than 2.57.1 is available: 2.59"
+        errorLine1="hilt = &quot;2.57.1&quot;"
+        errorLine2="       ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="6"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.google.dagger:hilt-android than 2.57.1 is available: 2.59"
+        errorLine1="hilt = &quot;2.57.1&quot;"
+        errorLine2="       ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="6"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.hilt:hilt-navigation-compose than 1.2.0 is available: 1.3.0"
+        errorLine1="hiltNavigationCompose = &quot;1.2.0&quot;"
+        errorLine2="                        ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="7"
+            column="25"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.hilt:hilt-navigation-compose than 1.2.0 is available: 1.3.0"
+        errorLine1="hiltNavigationCompose = &quot;1.2.0&quot;"
+        errorLine2="                        ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="7"
+            column="25"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.hilt:hilt-navigation-compose than 1.2.0 is available: 1.3.0"
+        errorLine1="hiltNavigationCompose = &quot;1.2.0&quot;"
+        errorLine2="                        ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="7"
+            column="25"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.google.firebase:firebase-bom than 33.7.0 is available: 34.11.0"
+        errorLine1="firebaseBom = &quot;33.7.0&quot;"
+        errorLine2="              ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="8"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.google.firebase:firebase-bom than 33.7.0 is available: 34.11.0"
+        errorLine1="firebaseBom = &quot;33.7.0&quot;"
+        errorLine2="              ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="8"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.google.firebase:firebase-bom than 33.7.0 is available: 34.11.0"
+        errorLine1="firebaseBom = &quot;33.7.0&quot;"
+        errorLine2="              ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="8"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.core:core-ktx than 1.15.0 is available: 1.18.0"
+        errorLine1="coreKtx = &quot;1.15.0&quot;"
+        errorLine2="          ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="9"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.core:core-ktx than 1.15.0 is available: 1.18.0"
+        errorLine1="coreKtx = &quot;1.15.0&quot;"
+        errorLine2="          ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="9"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.core:core-ktx than 1.15.0 is available: 1.18.0"
+        errorLine1="coreKtx = &quot;1.15.0&quot;"
+        errorLine2="          ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="9"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-process than 2.8.7 is available: 2.10.0"
+        errorLine1="lifecycleRuntimeKtx = &quot;2.8.7&quot;"
+        errorLine2="                      ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="10"
+            column="23"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-process than 2.8.7 is available: 2.10.0"
+        errorLine1="lifecycleRuntimeKtx = &quot;2.8.7&quot;"
+        errorLine2="                      ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="10"
+            column="23"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-process than 2.8.7 is available: 2.10.0"
+        errorLine1="lifecycleRuntimeKtx = &quot;2.8.7&quot;"
+        errorLine2="                      ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="10"
+            column="23"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-runtime-ktx than 2.8.7 is available: 2.10.0"
+        errorLine1="lifecycleRuntimeKtx = &quot;2.8.7&quot;"
+        errorLine2="                      ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="10"
+            column="23"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-runtime-ktx than 2.8.7 is available: 2.10.0"
+        errorLine1="lifecycleRuntimeKtx = &quot;2.8.7&quot;"
+        errorLine2="                      ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="10"
+            column="23"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-runtime-ktx than 2.8.7 is available: 2.10.0"
+        errorLine1="lifecycleRuntimeKtx = &quot;2.8.7&quot;"
+        errorLine2="                      ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="10"
+            column="23"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.activity:activity-compose than 1.9.3 is available: 1.13.0"
+        errorLine1="activityCompose = &quot;1.9.3&quot;"
+        errorLine2="                  ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="11"
+            column="19"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.activity:activity-compose than 1.9.3 is available: 1.13.0"
+        errorLine1="activityCompose = &quot;1.9.3&quot;"
+        errorLine2="                  ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="11"
+            column="19"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.activity:activity-compose than 1.9.3 is available: 1.13.0"
+        errorLine1="activityCompose = &quot;1.9.3&quot;"
+        errorLine2="                  ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="11"
+            column="19"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.squareup.okhttp3:okhttp than 4.12.0 is available: 5.1.0"
+        errorLine1="okhttp = &quot;4.12.0&quot;"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="13"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.squareup.okhttp3:okhttp than 4.12.0 is available: 5.1.0"
+        errorLine1="okhttp = &quot;4.12.0&quot;"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="13"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.squareup.okhttp3:okhttp than 4.12.0 is available: 5.1.0"
+        errorLine1="okhttp = &quot;4.12.0&quot;"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="13"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.squareup.okhttp3:okhttp-sse than 4.12.0 is available: 5.1.0"
+        errorLine1="okhttp = &quot;4.12.0&quot;"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="13"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.squareup.okhttp3:okhttp-sse than 4.12.0 is available: 5.1.0"
+        errorLine1="okhttp = &quot;4.12.0&quot;"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="13"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.squareup.okhttp3:okhttp-sse than 4.12.0 is available: 5.1.0"
+        errorLine1="okhttp = &quot;4.12.0&quot;"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="13"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.media3:media3-datasource-okhttp than 1.9.2 is available: 1.9.3"
+        errorLine1="media3 = &quot;1.9.2&quot;"
+        errorLine2="         ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="15"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.media3:media3-datasource-okhttp than 1.9.2 is available: 1.9.3"
+        errorLine1="media3 = &quot;1.9.2&quot;"
+        errorLine2="         ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="15"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.media3:media3-datasource-okhttp than 1.9.2 is available: 1.9.3"
+        errorLine1="media3 = &quot;1.9.2&quot;"
+        errorLine2="         ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="15"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.media3:media3-exoplayer than 1.9.2 is available: 1.9.3"
+        errorLine1="media3 = &quot;1.9.2&quot;"
+        errorLine2="         ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="15"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.media3:media3-exoplayer than 1.9.2 is available: 1.9.3"
+        errorLine1="media3 = &quot;1.9.2&quot;"
+        errorLine2="         ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="15"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.media3:media3-exoplayer than 1.9.2 is available: 1.9.3"
+        errorLine1="media3 = &quot;1.9.2&quot;"
+        errorLine2="         ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="15"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.media3:media3-session than 1.9.2 is available: 1.9.3"
+        errorLine1="media3 = &quot;1.9.2&quot;"
+        errorLine2="         ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="15"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.media3:media3-session than 1.9.2 is available: 1.9.3"
+        errorLine1="media3 = &quot;1.9.2&quot;"
+        errorLine2="         ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="15"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.media3:media3-session than 1.9.2 is available: 1.9.3"
+        errorLine1="media3 = &quot;1.9.2&quot;"
+        errorLine2="         ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="15"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.media3:media3-ui than 1.9.2 is available: 1.9.3"
+        errorLine1="media3 = &quot;1.9.2&quot;"
+        errorLine2="         ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="15"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.media3:media3-ui than 1.9.2 is available: 1.9.3"
+        errorLine1="media3 = &quot;1.9.2&quot;"
+        errorLine2="         ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="15"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.media3:media3-ui than 1.9.2 is available: 1.9.3"
+        errorLine1="media3 = &quot;1.9.2&quot;"
+        errorLine2="         ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="15"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.google.gms.google-services than 4.4.2 is available: 4.4.4"
+        errorLine1="googleServices = &quot;4.4.2&quot;"
+        errorLine2="                 ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="16"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.google.gms.google-services than 4.4.2 is available: 4.4.4"
+        errorLine1="googleServices = &quot;4.4.2&quot;"
+        errorLine2="                 ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="16"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.google.gms.google-services than 4.4.2 is available: 4.4.4"
+        errorLine1="googleServices = &quot;4.4.2&quot;"
+        errorLine2="                 ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="16"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.google.firebase.crashlytics than 3.0.2 is available: 3.0.6"
+        errorLine1="firebaseCrashlyticsPlugin = &quot;3.0.2&quot;"
+        errorLine2="                            ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="17"
+            column="29"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.google.firebase.crashlytics than 3.0.2 is available: 3.0.6"
+        errorLine1="firebaseCrashlyticsPlugin = &quot;3.0.2&quot;"
+        errorLine2="                            ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="17"
+            column="29"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.google.firebase.crashlytics than 3.0.2 is available: 3.0.6"
+        errorLine1="firebaseCrashlyticsPlugin = &quot;3.0.2&quot;"
+        errorLine2="                            ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="17"
+            column="29"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of org.jetbrains.kotlinx:kotlinx-serialization-json than 1.6.3 is available: 1.9.0"
+        errorLine1="kotlinxSerializationJson = &quot;1.6.3&quot;"
+        errorLine2="                           ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="20"
+            column="28"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of org.jetbrains.kotlinx:kotlinx-serialization-json than 1.6.3 is available: 1.9.0"
+        errorLine1="kotlinxSerializationJson = &quot;1.6.3&quot;"
+        errorLine2="                           ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="20"
+            column="28"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of org.jetbrains.kotlinx:kotlinx-serialization-json than 1.6.3 is available: 1.9.0"
+        errorLine1="kotlinxSerializationJson = &quot;1.6.3&quot;"
+        errorLine2="                           ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="20"
+            column="28"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.security:security-crypto-ktx than 1.1.0-alpha06 is available: 1.1.0"
+        errorLine1="securityCrypto = &quot;1.1.0-alpha06&quot;"
+        errorLine2="                 ~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="22"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.security:security-crypto-ktx than 1.1.0-alpha06 is available: 1.1.0"
+        errorLine1="securityCrypto = &quot;1.1.0-alpha06&quot;"
+        errorLine2="                 ~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="22"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.security:security-crypto-ktx than 1.1.0-alpha06 is available: 1.1.0"
+        errorLine1="securityCrypto = &quot;1.1.0-alpha06&quot;"
+        errorLine2="                 ~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="22"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.work:work-runtime-ktx than 2.9.1 is available: 2.11.1"
+        errorLine1="workRuntime = &quot;2.9.1&quot;"
+        errorLine2="              ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="23"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.work:work-runtime-ktx than 2.9.1 is available: 2.11.1"
+        errorLine1="workRuntime = &quot;2.9.1&quot;"
+        errorLine2="              ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="23"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.work:work-runtime-ktx than 2.9.1 is available: 2.11.1"
+        errorLine1="workRuntime = &quot;2.9.1&quot;"
+        errorLine2="              ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="23"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.hilt:hilt-work than 1.2.0 is available: 1.3.0"
+        errorLine1="hiltWork = &quot;1.2.0&quot;"
+        errorLine2="           ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="24"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.hilt:hilt-work than 1.2.0 is available: 1.3.0"
+        errorLine1="hiltWork = &quot;1.2.0&quot;"
+        errorLine2="           ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="24"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.hilt:hilt-work than 1.2.0 is available: 1.3.0"
+        errorLine1="hiltWork = &quot;1.2.0&quot;"
+        errorLine2="           ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="24"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.navigation:navigation-compose than 2.8.4 is available: 2.9.7"
+        errorLine1="navigationCompose = &quot;2.8.4&quot;"
+        errorLine2="                    ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="25"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.navigation:navigation-compose than 2.8.4 is available: 2.9.7"
+        errorLine1="navigationCompose = &quot;2.8.4&quot;"
+        errorLine2="                    ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="25"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.navigation:navigation-compose than 2.8.4 is available: 2.9.7"
+        errorLine1="navigationCompose = &quot;2.8.4&quot;"
+        errorLine2="                    ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="25"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.datastore:datastore-preferences than 1.1.1 is available: 1.2.1"
+        errorLine1="datastorePreferences = &quot;1.1.1&quot;"
+        errorLine2="                       ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="26"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.datastore:datastore-preferences than 1.1.1 is available: 1.2.1"
+        errorLine1="datastorePreferences = &quot;1.1.1&quot;"
+        errorLine2="                       ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="26"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.datastore:datastore-preferences than 1.1.1 is available: 1.2.1"
+        errorLine1="datastorePreferences = &quot;1.1.1&quot;"
+        errorLine2="                       ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="26"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of io.coil-kt.coil3:coil-compose than 3.0.4 is available: 3.1.0"
+        errorLine1="coil = &quot;3.0.4&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="27"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of io.coil-kt.coil3:coil-compose than 3.0.4 is available: 3.1.0"
+        errorLine1="coil = &quot;3.0.4&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="27"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of io.coil-kt.coil3:coil-compose than 3.0.4 is available: 3.1.0"
+        errorLine1="coil = &quot;3.0.4&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="27"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of io.coil-kt.coil3:coil-network-okhttp than 3.0.4 is available: 3.1.0"
+        errorLine1="coil = &quot;3.0.4&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="27"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of io.coil-kt.coil3:coil-network-okhttp than 3.0.4 is available: 3.1.0"
+        errorLine1="coil = &quot;3.0.4&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="27"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of io.coil-kt.coil3:coil-network-okhttp than 3.0.4 is available: 3.1.0"
+        errorLine1="coil = &quot;3.0.4&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="27"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.compose.material3.adaptive:adaptive than 1.0.0 is available: 1.2.0"
+        errorLine1="adaptive = &quot;1.0.0&quot;"
+        errorLine2="           ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="28"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.compose.material3.adaptive:adaptive than 1.0.0 is available: 1.2.0"
+        errorLine1="adaptive = &quot;1.0.0&quot;"
+        errorLine2="           ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="28"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.compose.material3.adaptive:adaptive than 1.0.0 is available: 1.2.0"
+        errorLine1="adaptive = &quot;1.0.0&quot;"
+        errorLine2="           ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="28"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.compose.material3.adaptive:adaptive-layout than 1.0.0 is available: 1.2.0"
+        errorLine1="adaptive = &quot;1.0.0&quot;"
+        errorLine2="           ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="28"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.compose.material3.adaptive:adaptive-layout than 1.0.0 is available: 1.2.0"
+        errorLine1="adaptive = &quot;1.0.0&quot;"
+        errorLine2="           ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="28"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.compose.material3.adaptive:adaptive-layout than 1.0.0 is available: 1.2.0"
+        errorLine1="adaptive = &quot;1.0.0&quot;"
+        errorLine2="           ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="28"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.compose.material3.adaptive:adaptive-navigation than 1.0.0 is available: 1.2.0"
+        errorLine1="adaptive = &quot;1.0.0&quot;"
+        errorLine2="           ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="28"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.compose.material3.adaptive:adaptive-navigation than 1.0.0 is available: 1.2.0"
+        errorLine1="adaptive = &quot;1.0.0&quot;"
+        errorLine2="           ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="28"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.compose.material3.adaptive:adaptive-navigation than 1.0.0 is available: 1.2.0"
+        errorLine1="adaptive = &quot;1.0.0&quot;"
+        errorLine2="           ~~~~~~~">
+        <location
+            file="$HOME/AndroidStudioProjects/Dispatch/gradle/libs.versions.toml"
+            line="28"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1=") : ForwardingPlayer(player) {"
+        errorLine2="    ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/DispatchForwardingPlayer.kt"
+            line="21"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1=") : ForwardingPlayer(player) {"
+        errorLine2="    ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/DispatchForwardingPlayer.kt"
+            line="21"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="    override fun seekToNext() {"
+        errorLine2="                 ~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/DispatchForwardingPlayer.kt"
+            line="23"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="    override fun seekToPrevious() {"
+        errorLine2="                 ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/DispatchForwardingPlayer.kt"
+            line="28"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="    override fun pause() {"
+        errorLine2="                 ~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/DispatchForwardingPlayer.kt"
+            line="33"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="        super.pause()"
+        errorLine2="              ~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/DispatchForwardingPlayer.kt"
+            line="36"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="    override fun play() {"
+        errorLine2="                 ~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/DispatchForwardingPlayer.kt"
+            line="39"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="        super.play()"
+        errorLine2="              ~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/DispatchForwardingPlayer.kt"
+            line="42"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="class EndedWorkaroundPlayer(exoPlayer: ExoPlayer) : ForwardingSimpleBasePlayer(exoPlayer),"
+        errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/EndedWorkaroundPlayer.kt"
+            line="19"
+            column="53"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="class EndedWorkaroundPlayer(exoPlayer: ExoPlayer) : ForwardingSimpleBasePlayer(exoPlayer),"
+        errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/EndedWorkaroundPlayer.kt"
+            line="19"
+            column="53"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="        player.addListener(this)"
+        errorLine2="        ~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/EndedWorkaroundPlayer.kt"
+            line="25"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="        get() = player as ExoPlayer"
+        errorLine2="                ~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/EndedWorkaroundPlayer.kt"
+            line="29"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="    override fun getState(): State {"
+        errorLine2="                 ~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/EndedWorkaroundPlayer.kt"
+            line="44"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="    override fun getState(): State {"
+        errorLine2="                             ~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/EndedWorkaroundPlayer.kt"
+            line="44"
+            column="30"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="            val superState = super.state"
+        errorLine2="                ~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/EndedWorkaroundPlayer.kt"
+            line="46"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="            val superState = super.state"
+        errorLine2="                                   ~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/EndedWorkaroundPlayer.kt"
+            line="46"
+            column="36"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="            if (superState.playerError != null) {"
+        errorLine2="                           ~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/EndedWorkaroundPlayer.kt"
+            line="47"
+            column="28"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="            return superState.buildUpon().setPlaybackState(STATE_ENDED).setIsLoading(false).build()"
+        errorLine2="                              ~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/EndedWorkaroundPlayer.kt"
+            line="51"
+            column="31"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="            return superState.buildUpon().setPlaybackState(STATE_ENDED).setIsLoading(false).build()"
+        errorLine2="                                          ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/EndedWorkaroundPlayer.kt"
+            line="51"
+            column="43"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="            return superState.buildUpon().setPlaybackState(STATE_ENDED).setIsLoading(false).build()"
+        errorLine2="                                                                        ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/EndedWorkaroundPlayer.kt"
+            line="51"
+            column="73"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="            return superState.buildUpon().setPlaybackState(STATE_ENDED).setIsLoading(false).build()"
+        errorLine2="                                                                                            ~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/EndedWorkaroundPlayer.kt"
+            line="51"
+            column="93"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="        if (player.currentTimeline.isEmpty) {"
+        errorLine2="            ~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/EndedWorkaroundPlayer.kt"
+            line="53"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="            return super.state.buildUpon().setDeviceInfo(remoteDeviceInfo).build()"
+        errorLine2="                         ~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/EndedWorkaroundPlayer.kt"
+            line="54"
+            column="26"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="            return super.state.buildUpon().setDeviceInfo(remoteDeviceInfo).build()"
+        errorLine2="                               ~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/EndedWorkaroundPlayer.kt"
+            line="54"
+            column="32"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="            return super.state.buildUpon().setDeviceInfo(remoteDeviceInfo).build()"
+        errorLine2="                                           ~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/EndedWorkaroundPlayer.kt"
+            line="54"
+            column="44"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="            return super.state.buildUpon().setDeviceInfo(remoteDeviceInfo).build()"
+        errorLine2="                                                                           ~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/EndedWorkaroundPlayer.kt"
+            line="54"
+            column="76"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
+        errorLine1="        return super.getState()"
+        errorLine2="                     ~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/playback/EndedWorkaroundPlayer.kt"
+            line="56"
+            column="22"/>
+    </issue>
+
+    <issue
+        id="ConfigurationScreenWidthHeight"
+        message="Using Configuration.screenWidthDp instead of LocalWindowInfo.current.containerSize"
+        errorLine1="    val useNavigationRail = configuration.screenWidthDp >= 600"
+        errorLine2="                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/MainActivity.kt"
+            line="192"
+            column="29"/>
+    </issue>
+
+    <issue
+        id="StateFlowValueCalledInComposition"
+        message="StateFlow.value should not be called within composition"
+        errorLine1="        initial = viewModel.updateState.value"
+        errorLine2="                                        ~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/update/UpdateBanner.kt"
+            line="32"
+            column="41"/>
+    </issue>
+
+    <issue
+        id="StateFlowValueCalledInComposition"
+        message="StateFlow.value should not be called within composition"
+        errorLine1="                                    initial = viewModel.isDownloading.value"
+        errorLine2="                                                                      ~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/update/UpdateBanner.kt"
+            line="124"
+            column="71"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="                Log.e(&quot;ComposeStateWriteGuard&quot;, message)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/util/ComposeStateWriteGuard.kt"
+            line="61"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="        Log.i(&quot;ComposeStateWriteGuard&quot;, &quot;Installed — monitoring MutableState writes&quot;)"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/util/ComposeStateWriteGuard.kt"
+            line="71"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="                android.util.Log.e(&quot;FileLogTree&quot;, &quot;Failed to open log writer: ${e.message}&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/logging/FileLogTree.kt"
+            line="75"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="                android.util.Log.e(&quot;FileLogTree&quot;, &quot;Failed to write log: ${e.message}&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/logging/FileLogTree.kt"
+            line="137"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="            android.util.Log.e(&quot;FileLogTree&quot;, &quot;Failed to rotate logs: ${e.message}&quot;)"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/logging/FileLogTree.kt"
+            line="161"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="            android.util.Log.e(&quot;FileLogTree&quot;, &quot;Failed to cleanup old logs: ${e.message}&quot;)"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/logging/FileLogTree.kt"
+            line="179"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="                    android.util.Log.e(&quot;FileLogTree&quot;, &quot;Failed to log crash: ${e.message}&quot;)"
+        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/logging/FileLogTree.kt"
+            line="219"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="            android.util.Log.e(&quot;FileLogTree&quot;, &quot;Failed to write pending_crash.json: ${e.message}&quot;)"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/logging/FileLogTree.kt"
+            line="275"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="            android.util.Log.e(&quot;FileLogTree&quot;, &quot;Failed to read previous logs: ${e.message}&quot;)"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/logging/FileLogTree.kt"
+            line="315"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="                android.util.Log.e(&quot;FileLogTree&quot;, &quot;Failed to clear logs: ${e.message}&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/logging/FileLogTree.kt"
+            line="350"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="                    android.util.Log.i(&quot;FileLogTree&quot;, &quot;Initialized - $storageType - ${it.logDir.absolutePath}&quot;)"
+        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/logging/FileLogTree.kt"
+            line="385"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="InsecureBaseConfiguration"
+        message="Insecure Base Configuration"
+        errorLine1="    &lt;base-config cleartextTrafficPermitted=&quot;true&quot; />"
+        errorLine2="                                            ~~~~">
+        <location
+            file="src/main/res/xml/network_security_config.xml"
+            line="8"
+            column="45"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 33"
+        errorLine1="            val (widthPx, heightPx, density) = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {"
+        errorLine2="                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/theme/DisplayDimensions.kt"
+            line="226"
+            column="52"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 33"
+        errorLine1="                val useShared = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {"
+        errorLine2="                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/logging/FileLogTree.kt"
+            line="376"
+            column="37"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 33"
+        errorLine1="        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/MainActivity.kt"
+            line="94"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 33"
+        errorLine1="            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/update/UpdateChecker.kt"
+            line="151"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="This folder configuration (`v26`) is unnecessary; `minSdkVersion` is 33. Merge all the resources in this folder into `mipmap-anydpi`.">
+        <location
+            file="src/main/res/mipmap-anydpi-v26"/>
+    </issue>
+
+    <issue
+        id="StaticFieldLeak"
+        message="Do not place Android context classes in static fields (static reference to `FileLogTree` which has field `context` pointing to `Context`); this is a memory leak"
+        errorLine1="        private var instance: FileLogTree? = null"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/logging/FileLogTree.kt"
+            line="365"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="StaticFieldLeak"
+        message="This field leaks a context object"
+        errorLine1="    private val context: android.content.Context,"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/update/UpdateBanner.kt"
+            line="165"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="FrequentlyChangingValue"
+        message="Reading a value annotated with @FrequentlyChangingValue inside composition"
+        errorLine1="    val layoutInfo = listState.layoutInfo"
+        errorLine2="                               ~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/screens/MessagesScreen.kt"
+            line="96"
+            column="32"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.cyan_primary` appears to be unused"
+        errorLine1="    &lt;color name=&quot;cyan_primary&quot;>#00E5FF&lt;/color>"
+        errorLine2="           ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="3"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.surface_dark` appears to be unused"
+        errorLine1="    &lt;color name=&quot;surface_dark&quot;>#121212&lt;/color>"
+        errorLine2="           ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="4"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.on_surface` appears to be unused"
+        errorLine1="    &lt;color name=&quot;on_surface&quot;>#E0E0E0&lt;/color>"
+        errorLine2="           ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="5"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.surface_variant` appears to be unused"
+        errorLine1="    &lt;color name=&quot;surface_variant&quot;>#1E1E1E&lt;/color>"
+        errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="6"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="UseOfNonLambdaOffsetOverload"
+        message="State backed values should use the lambda overload of Modifier.offset"
+        errorLine1="                .offset(x = 0.dp, y = -bottomOffset)"
+        errorLine2="                 ~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/components/JumpToBottom.kt"
+            line="42"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="MonochromeLauncherIcon"
+        message="The application adaptive icon is missing a monochrome tag"
+        errorLine1="&lt;adaptive-icon xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;>"
+        errorLine2="^">
+        <location
+            file="src/main/res/mipmap-anydpi-v26/ic_launcher.xml"
+            line="2"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="MonochromeLauncherIcon"
+        message="The application adaptive roundIcon is missing a monochrome tag"
+        errorLine1="&lt;adaptive-icon xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;>"
+        errorLine2="^">
+        <location
+            file="src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml"
+            line="2"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        set(value) = prefs.edit().putString(KEY_OAUTH_TOKEN, value).apply()"
+        errorLine2="                     ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/config/AnthropicAuthManager.kt"
+            line="53"
+            column="22"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        set(value) = prefs.edit().putString(KEY_ORG_UUID, value).apply()"
+        errorLine2="                     ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/config/AnthropicAuthManager.kt"
+            line="58"
+            column="22"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        set(value) = prefs.edit().putString(KEY_BRIDGE_ENV_ID, value).apply()"
+        errorLine2="                     ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/config/AnthropicAuthManager.kt"
+            line="67"
+            column="22"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/config/AnthropicAuthManager.kt"
+            line="134"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="                Intent(Intent.ACTION_DIAL, Uri.parse(&quot;tel:${action.number}&quot;)).apply {"
+        errorLine2="                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/accessibility/DispatchAccessibilityService.kt"
+            line="193"
+            column="44"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="                Intent(Intent.ACTION_SENDTO, Uri.parse(&quot;smsto:${action.number}&quot;)).apply {"
+        errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/accessibility/DispatchAccessibilityService.kt"
+            line="198"
+            column="46"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="                Intent(Intent.ACTION_SENDTO, Uri.parse(&quot;smsto:${action.number}&quot;)).apply {"
+        errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/accessibility/DispatchAccessibilityService.kt"
+            line="207"
+            column="46"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))"
+        errorLine2="                                                    ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/composition/LocalManagerProvider.kt"
+            line="135"
+            column="53"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(TailscaleConfig.SANDBOX_URL))"
+        errorLine2="                                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/MainActivity.kt"
+            line="199"
+            column="61"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putString(KEY_FCM_TOKEN, token).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/config/TokenManager.kt"
+            line="34"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="            prefs.edit().putInt(&quot;speaker_id&quot;, value).apply()"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/tts/TtsEngine.kt"
+            line="38"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="            prefs.edit().putFloat(&quot;speed&quot;, value).apply()"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/tts/TtsEngine.kt"
+            line="43"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="                                    prefs.edit()"
+        errorLine2="                                    ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/update/UpdateBanner.kt"
+            line="86"
+            column="37"/>
+    </issue>
+
+    <issue
+        id="ComposeCompositionLocalUsage"
+        message="`CompositionLocal`s are implicit dependencies and creating new ones should be avoided. See https://slackhq.github.io/compose-lints/rules/#compositionlocals for more information."
+        errorLine1="/** CompositionLocal provider for DgColorScheme. Crashes clearly if not provided. */"
+        errorLine2="^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/theme/DgColorScheme.kt"
+            line="118"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="ComposeCompositionLocalUsage"
+        message="`CompositionLocal`s are implicit dependencies and creating new ones should be avoided. See https://slackhq.github.io/compose-lints/rules/#compositionlocals for more information."
+        errorLine1="/**"
+        errorLine2="^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/theme/DisplayDimensions.kt"
+            line="379"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="ComposeCompositionLocalUsage"
+        message="`CompositionLocal`s are implicit dependencies and creating new ones should be avoided. See https://slackhq.github.io/compose-lints/rules/#compositionlocals for more information."
+        errorLine1="/** CompositionLocal for [PermissionsManager]. Crashes clearly if not provided. */"
+        errorLine2="^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/composition/LocalManagerProvider.kt"
+            line="29"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="ComposeCompositionLocalUsage"
+        message="`CompositionLocal`s are implicit dependencies and creating new ones should be avoided. See https://slackhq.github.io/compose-lints/rules/#compositionlocals for more information."
+        errorLine1="/** CompositionLocal for [IntentManager]. Crashes clearly if not provided. */"
+        errorLine2="^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/composition/LocalManagerProvider.kt"
+            line="48"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="ComposeCompositionLocalUsage"
+        message="`CompositionLocal`s are implicit dependencies and creating new ones should be avoided. See https://slackhq.github.io/compose-lints/rules/#compositionlocals for more information."
+        errorLine1="/** CompositionLocal for [ExitManager]. Crashes clearly if not provided. */"
+        errorLine2="^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/composition/LocalManagerProvider.kt"
+            line="65"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="ComposeModifierMissing"
+        message="This @Composable function emits content but doesn&apos;t have a modifier parameter.See https://slackhq.github.io/compose-lints/rules/#when-should-i-expose-modifier-parameters for more information."
+        errorLine1="fun BubbleRichContent("
+        errorLine2="    ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/components/bubbles/BubbleRichContent.kt"
+            line="113"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposeModifierMissing"
+        message="This @Composable function emits content but doesn&apos;t have a modifier parameter.See https://slackhq.github.io/compose-lints/rules/#when-should-i-expose-modifier-parameters for more information."
+        errorLine1="fun DepartmentPicker("
+        errorLine2="    ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/components/DepartmentPicker.kt"
+            line="24"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposeModifierMissing"
+        message="This @Composable function emits content but doesn&apos;t have a modifier parameter.See https://slackhq.github.io/compose-lints/rules/#when-should-i-expose-modifier-parameters for more information."
+        errorLine1="fun BottomNavBar("
+        errorLine2="    ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/navigation/DispatchTab.kt"
+            line="35"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposeModifierMissing"
+        message="This @Composable function emits content but doesn&apos;t have a modifier parameter.See https://slackhq.github.io/compose-lints/rules/#when-should-i-expose-modifier-parameters for more information."
+        errorLine1="fun DispatchNavigationRail("
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/navigation/DispatchTab.kt"
+            line="67"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposeModifierMissing"
+        message="This @Composable function emits content but doesn&apos;t have a modifier parameter.See https://slackhq.github.io/compose-lints/rules/#when-should-i-expose-modifier-parameters for more information."
+        errorLine1="fun LiveSessionScreen("
+        errorLine2="    ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/screens/LiveSessionScreen.kt"
+            line="55"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposeModifierMissing"
+        message="This @Composable function emits content but doesn&apos;t have a modifier parameter.See https://slackhq.github.io/compose-lints/rules/#when-should-i-expose-modifier-parameters for more information."
+        errorLine1="fun LogViewerScreen(onBack: () -> Unit) {"
+        errorLine2="    ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/LogViewerScreen.kt"
+            line="77"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposeModifierMissing"
+        message="This @Composable function emits content but doesn&apos;t have a modifier parameter.See https://slackhq.github.io/compose-lints/rules/#when-should-i-expose-modifier-parameters for more information."
+        errorLine1="fun LogEntryCard(log: InMemoryLogTree.LogEntry) {"
+        errorLine2="    ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/LogViewerScreen.kt"
+            line="496"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposeModifierMissing"
+        message="This @Composable function emits content but doesn&apos;t have a modifier parameter.See https://slackhq.github.io/compose-lints/rules/#when-should-i-expose-modifier-parameters for more information."
+        errorLine1="fun DispatchApp("
+        errorLine2="    ~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/MainActivity.kt"
+            line="118"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposeModifierMissing"
+        message="This @Composable function emits content but doesn&apos;t have a modifier parameter.See https://slackhq.github.io/compose-lints/rules/#when-should-i-expose-modifier-parameters for more information."
+        errorLine1="fun MessagesScreen("
+        errorLine2="    ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/screens/MessagesScreen.kt"
+            line="63"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposeModifierMissing"
+        message="This @Composable function emits content but doesn&apos;t have a modifier parameter.See https://slackhq.github.io/compose-lints/rules/#when-should-i-expose-modifier-parameters for more information."
+        errorLine1="fun RootNavScreen("
+        errorLine2="    ~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/rootnav/RootNavScreen.kt"
+            line="46"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposeModifierMissing"
+        message="This @Composable function emits content but doesn&apos;t have a modifier parameter.See https://slackhq.github.io/compose-lints/rules/#when-should-i-expose-modifier-parameters for more information."
+        errorLine1="fun UpdateBanner(viewModel: UpdateStateManager) {"
+        errorLine2="    ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/update/UpdateBanner.kt"
+            line="30"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [modifier: Modifier = Modifier, sessionId: String, initialRecordCount: Int, viewModel: SessionDetailViewModel = hiltViewModel(), onBack: () -> Unit] but should be [sessionId: String, initialRecordCount: Int, modifier: Modifier = Modifier, viewModel: SessionDetailViewModel = hiltViewModel(), onBack: () -> Unit].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="private fun SessionDetailScreen("
+        errorLine2="                               ^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/screens/ActivityScreen.kt"
+            line="246"
+            column="32"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [modifier: Modifier = Modifier, bubble: ChatBubble, showTimestamp: Boolean, topPadding: Dp, isFirstInRun: Boolean = true, isLastInRun: Boolean = true, department: String = &quot;&quot;, snackbarHostState: SnackbarHostState] but should be [bubble: ChatBubble, showTimestamp: Boolean, topPadding: Dp, snackbarHostState: SnackbarHostState, modifier: Modifier = Modifier, isFirstInRun: Boolean = true, isLastInRun: Boolean = true, department: String = &quot;&quot;].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun AgentBubble("
+        errorLine2="               ^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/components/bubbles/AgentBubble.kt"
+            line="54"
+            column="16"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [modifier: Modifier = Modifier, assignee: String, alpha: Float = 1f] but should be [assignee: String, modifier: Modifier = Modifier, alpha: Float = 1f].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun AssigneeBadge("
+        errorLine2="                 ^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/components/AssigneeBadge.kt"
+            line="13"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [modifier: Modifier = Modifier, record: SessionRecord] but should be [record: SessionRecord, modifier: Modifier = Modifier].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun AssistantRecordBubble("
+        errorLine2="                         ^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/components/records/AssistantRecordBubble.kt"
+            line="23"
+            column="26"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [modifier: Modifier = Modifier, viewModel: BoardViewModel = hiltViewModel(), whiteboardRefresh: Int, onNavigateToThread: ((String) -> Unit)? = null] but should be [whiteboardRefresh: Int, modifier: Modifier = Modifier, viewModel: BoardViewModel = hiltViewModel(), onNavigateToThread: ((String) -> Unit)? = null].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun BoardScreen("
+        errorLine2="               ^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/screens/BoardScreen.kt"
+            line="43"
+            column="16"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [modifier: Modifier = Modifier, viewModel: ChatViewModel = hiltViewModel(), onComposeNew: () -> Unit, onOpenConversation: (sessionId: String, department: String) -> Unit = { _, _ -> }] but should be [onComposeNew: () -> Unit, modifier: Modifier = Modifier, viewModel: ChatViewModel = hiltViewModel(), onOpenConversation: (sessionId: String, department: String) -> Unit = { _, _ -> }].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun ChatScreen("
+        errorLine2="              ^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/screens/ChatScreen.kt"
+            line="27"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [modifier: Modifier = Modifier, bubble: ChatBubble, isPlaying: Boolean, showTimestamp: Boolean, topPadding: Dp, isFirstInRun: Boolean = true, isLastInRun: Boolean = true, onReplay: () -> Unit] but should be [bubble: ChatBubble, isPlaying: Boolean, showTimestamp: Boolean, topPadding: Dp, modifier: Modifier = Modifier, isFirstInRun: Boolean = true, isLastInRun: Boolean = true, onReplay: () -> Unit].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun DispatchBubble("
+        errorLine2="                  ^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/components/bubbles/DispatchBubble.kt"
+            line="32"
+            column="19"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [modifier: Modifier = Modifier, event: OrchestratorEvent] but should be [event: OrchestratorEvent, modifier: Modifier = Modifier].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun EventCard("
+        errorLine2="             ^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/components/cards/EventCard.kt"
+            line="46"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [modifier: Modifier = Modifier, message: HistoryMessage, viewModel: HistoryViewModel] but should be [message: HistoryMessage, viewModel: HistoryViewModel, modifier: Modifier = Modifier].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun HistoryCard("
+        errorLine2="               ^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/components/cards/HistoryCard.kt"
+            line="40"
+            column="16"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [modifier: Modifier = Modifier, value: String, onValueChange: (String) -> Unit, onSend: () -> Unit, onAttach: () -> Unit = {}, onEmoji: () -> Unit = {}, onImage: () -> Unit = {}, onMic: () -> Unit = {}, isSending: Boolean = false] but should be [value: String, onValueChange: (String) -> Unit, onSend: () -> Unit, modifier: Modifier = Modifier, onAttach: () -> Unit = {}, onEmoji: () -> Unit = {}, onImage: () -> Unit = {}, onMic: () -> Unit = {}, isSending: Boolean = false].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun InputBar("
+        errorLine2="            ^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/components/InputBar.kt"
+            line="30"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [modifier: Modifier = Modifier, bubble: ChatBubble, showTimestamp: Boolean, topPadding: Dp, isFirstInRun: Boolean = true, isLastInRun: Boolean = true, snackbarHostState: SnackbarHostState] but should be [bubble: ChatBubble, showTimestamp: Boolean, topPadding: Dp, snackbarHostState: SnackbarHostState, modifier: Modifier = Modifier, isFirstInRun: Boolean = true, isLastInRun: Boolean = true].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun NigelBubble("
+        errorLine2="               ^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/components/bubbles/NigelBubble.kt"
+            line="29"
+            column="16"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [modifier: Modifier = Modifier, post: PulsePost, showChannel: Boolean] but should be [post: PulsePost, showChannel: Boolean, modifier: Modifier = Modifier].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun PulsePostCard("
+        errorLine2="                 ^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/components/cards/PulsePostCard.kt"
+            line="39"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [modifier: Modifier = Modifier, record: SessionRecord] but should be [record: SessionRecord, modifier: Modifier = Modifier].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun RecordItem("
+        errorLine2="              ^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/components/records/RecordItem.kt"
+            line="8"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [modifier: Modifier = Modifier, session: SessionInfo, onClick: () -> Unit, runningCommand: String? = null, onCommand: ((String) -> Unit)? = null] but should be [session: SessionInfo, onClick: () -> Unit, modifier: Modifier = Modifier, runningCommand: String? = null, onCommand: ((String) -> Unit)? = null].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun SessionCard("
+        errorLine2="               ^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/components/sessions/SessionCard.kt"
+            line="44"
+            column="16"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [modifier: Modifier = Modifier, tokenManager: TokenManager, modelManager: ModelManager, ttsEngine: TtsEngine, viewModel: SettingsViewModel = hiltViewModel(), onBack: (() -> Unit)? = null] but should be [tokenManager: TokenManager, modelManager: ModelManager, ttsEngine: TtsEngine, modifier: Modifier = Modifier, viewModel: SettingsViewModel = hiltViewModel(), onBack: (() -> Unit)? = null].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun SettingsScreen("
+        errorLine2="                  ^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/screens/SettingsScreen.kt"
+            line="38"
+            column="19"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [modifier: Modifier = Modifier, text: String, toolStatus: String?] but should be [text: String, toolStatus: String?, modifier: Modifier = Modifier].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun StreamingBubble("
+        errorLine2="                   ^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/components/bubbles/StreamingBubble.kt"
+            line="27"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [modifier: Modifier = Modifier, record: SessionRecord] but should be [record: SessionRecord, modifier: Modifier = Modifier].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun SystemRecord("
+        errorLine2="                ^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/components/records/SystemRecord.kt"
+            line="14"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [modifier: Modifier = Modifier, tag: String] but should be [tag: String, modifier: Modifier = Modifier].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun TagBadge("
+        errorLine2="            ^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/components/TagBadge.kt"
+            line="20"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [modifier: Modifier = Modifier, task: WhiteboardTask, onTapThread: ((String) -> Unit)? = null, dimmed: Boolean = false] but should be [task: WhiteboardTask, modifier: Modifier = Modifier, onTapThread: ((String) -> Unit)? = null, dimmed: Boolean = false].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun TaskCard("
+        errorLine2="            ^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/components/cards/TaskCard.kt"
+            line="49"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [modifier: Modifier = Modifier, bubble: ChatBubble, topPadding: Dp] but should be [bubble: ChatBubble, topPadding: Dp, modifier: Modifier = Modifier].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun ToolBubble("
+        errorLine2="              ^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/components/bubbles/ToolBubble.kt"
+            line="42"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [modifier: Modifier = Modifier, record: SessionRecord] but should be [record: SessionRecord, modifier: Modifier = Modifier].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun ToolCallChip("
+        errorLine2="                ^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/components/records/ToolCallChip.kt"
+            line="22"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [modifier: Modifier = Modifier, record: SessionRecord] but should be [record: SessionRecord, modifier: Modifier = Modifier].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun ToolResultChip("
+        errorLine2="                  ^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/components/records/ToolResultChip.kt"
+            line="23"
+            column="19"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [modifier: Modifier = Modifier, record: SessionRecord] but should be [record: SessionRecord, modifier: Modifier = Modifier].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun UserRecordBubble("
+        errorLine2="                    ^">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/components/records/UserRecordBubble.kt"
+            line="20"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableCollections"
+        message="The Compose Compiler cannot infer the stability of a parameter if a List&lt;String> is used in it, even if the item type is stable.&#xA;You should use Kotlinx Immutable Collections instead: `departments: ImmutableList&lt;String>` or create an `@Immutable` wrapper for this class: `@Immutable data class DepartmentsList(val items: List&lt;String>)`&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-using-unstable-collections for more information."
+        errorLine1="    departments: List&lt;String>,"
+        errorLine2="                 ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/components/DepartmentPicker.kt"
+            line="25"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableCollections"
+        message="The Compose Compiler cannot infer the stability of a parameter if a Set&lt;String> is used in it, even if the item type is stable.&#xA;You should use Kotlinx Immutable Collections instead: `selectedDepts: ImmutableSet&lt;String>` or create an `@Immutable` wrapper for this class: `@Immutable data class SelectedDeptsSet(val items: Set&lt;String>)`&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-using-unstable-collections for more information."
+        errorLine1="    selectedDepts: Set&lt;String>,"
+        errorLine2="                   ~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/components/DepartmentPicker.kt"
+            line="26"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableCollections"
+        message="The Compose Compiler cannot infer the stability of a parameter if a List&lt;String> is used in it, even if the item type is stable.&#xA;You should use Kotlinx Immutable Collections instead: `tags: ImmutableList&lt;String>` or create an `@Immutable` wrapper for this class: `@Immutable data class TagsList(val items: List&lt;String>)`&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-using-unstable-collections for more information."
+        errorLine1="    tags: List&lt;String>,"
+        errorLine2="          ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/LogViewerScreen.kt"
+            line="429"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableCollections"
+        message="The Compose Compiler cannot infer the stability of a parameter if a Set&lt;String> is used in it, even if the item type is stable.&#xA;You should use Kotlinx Immutable Collections instead: `excludedTags: ImmutableSet&lt;String>` or create an `@Immutable` wrapper for this class: `@Immutable data class ExcludedTagsSet(val items: Set&lt;String>)`&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-using-unstable-collections for more information."
+        errorLine1="    excludedTags: Set&lt;String>,"
+        errorLine2="                  ~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/LogViewerScreen.kt"
+            line="430"
+            column="19"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableCollections"
+        message="The Compose Compiler cannot infer the stability of a parameter if a List&lt;String> is used in it, even if the item type is stable.&#xA;You should use Kotlinx Immutable Collections instead: `allDepartments: ImmutableList&lt;String>` or create an `@Immutable` wrapper for this class: `@Immutable data class AllDepartmentsList(val items: List&lt;String>)`&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-using-unstable-collections for more information."
+        errorLine1="    allDepartments: List&lt;String>,"
+        errorLine2="                    ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/screens/SendScreen.kt"
+            line="437"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableCollections"
+        message="The Compose Compiler cannot infer the stability of a parameter if a Set&lt;String> is used in it, even if the item type is stable.&#xA;You should use Kotlinx Immutable Collections instead: `selectedDepts: ImmutableSet&lt;String>` or create an `@Immutable` wrapper for this class: `@Immutable data class SelectedDeptsSet(val items: Set&lt;String>)`&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-using-unstable-collections for more information."
+        errorLine1="    selectedDepts: Set&lt;String>,"
+        errorLine2="                   ~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/screens/SendScreen.kt"
+            line="438"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableCollections"
+        message="The Compose Compiler cannot infer the stability of a parameter if a List&lt;ThreadInfo> is used in it, even if the item type is stable.&#xA;You should use Kotlinx Immutable Collections instead: `threads: ImmutableList&lt;ThreadInfo>` or create an `@Immutable` wrapper for this class: `@Immutable data class ThreadsList(val items: List&lt;ThreadInfo>)`&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-using-unstable-collections for more information."
+        errorLine1="    threads: List&lt;ThreadInfo>,"
+        errorLine2="             ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/screens/SendScreen.kt"
+            line="483"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableCollections"
+        message="The Compose Compiler cannot infer the stability of a parameter if a List&lt;String> is used in it, even if the item type is stable.&#xA;You should use Kotlinx Immutable Collections instead: `availableVoices: ImmutableList&lt;String>` or create an `@Immutable` wrapper for this class: `@Immutable data class AvailableVoicesList(val items: List&lt;String>)`&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-using-unstable-collections for more information."
+        errorLine1="    availableVoices: List&lt;String>,"
+        errorLine2="                     ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/digitalgnosis/dispatch/ui/screens/SettingsScreen.kt"
+            line="315"
+            column="22"/>
+    </issue>
+
+</issues>

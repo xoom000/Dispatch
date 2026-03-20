@@ -29,13 +29,19 @@ android {
 
     defaultConfig {
         applicationId = "dev.digitalgnosis.dispatch"
-        minSdk = 26
-        targetSdk = 35
+        minSdk = 33
+        targetSdk = 36
         versionCode = 8
         versionName = "1.0.8"
 
         // File Bridge API key — loaded from local.properties (gitignored)
         buildConfigField("String", "FB_API_KEY", "\"${fbApiKey}\"")
+    }
+
+    lint {
+        baseline = file("lint-baseline.xml")
+        abortOnError = true
+        warningsAsErrors = false
     }
 
     signingConfigs {
