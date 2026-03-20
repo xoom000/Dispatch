@@ -1,25 +1,25 @@
 package dev.digitalgnosis.dispatch.ui.viewmodels
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.digitalgnosis.dispatch.data.GeminiRepository
 import dev.digitalgnosis.dispatch.data.GeminiSessionInfo
 import dev.digitalgnosis.dispatch.data.GeminiUpdate
 import dev.digitalgnosis.dispatch.data.MessageRepository
-import dev.digitalgnosis.dispatch.network.AudioStreamClient
+import dev.digitalgnosis.dispatch.playback.DispatchPlaybackService
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
 class GeminiViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val geminiRepository: GeminiRepository,
     private val messageRepository: MessageRepository,
-    private val audioStreamClient: AudioStreamClient
 ) : ViewModel() {
 
     private val _sessions = MutableStateFlow<List<GeminiSessionInfo>>(emptyList())
@@ -182,8 +182,17 @@ class GeminiViewModel @Inject constructor(
 
             if (fullText.isNotBlank()) {
                 Timber.i("GeminiVM: sendMessage — response received (%d chars), playing audio", fullText.length)
-                withContext(Dispatchers.IO) {
-                    audioStreamClient.replayMessage("Gemini CLI", fullText, null)
+                try {
+                    val intent = DispatchPlaybackService.createIntent(
+                        context = context,
+                        text = fullText,
+                        voice = "am_michael",
+                        sender = "Gemini CLI",
+                        message = fullText,
+                    )
+                    context.startForegroundService(intent)
+                } catch (e: Exception) {
+                    Timber.e(e, "GeminiVM: audio playback failed")
                 }
                 loadSession(session.id) // Reload to get official history
             }

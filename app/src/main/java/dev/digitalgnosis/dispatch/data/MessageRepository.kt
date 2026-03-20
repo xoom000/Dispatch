@@ -42,6 +42,9 @@ class VoiceNotificationRepository @Inject constructor(
 
     private val _cursor = AtomicInteger(0)
 
+    /** The notification currently being played. Set by DispatchPlaybackService when playback starts. */
+    @Volatile private var _playingNotification: VoiceNotification? = null
+
     init {
         scope.launch {
             try {
@@ -70,6 +73,23 @@ class VoiceNotificationRepository @Inject constructor(
                 Timber.e(e, "VoiceNotificationRepository: failed to persist from %s", notification.sender)
             }
         }
+    }
+
+    /**
+     * Mark a notification as currently playing.
+     * Called by DispatchPlaybackService when playback of a message starts.
+     * Voice reply uses this to target the right sender, not the newest message.
+     */
+    fun setPlayingNotification(notification: VoiceNotification?) {
+        _playingNotification = notification
+    }
+
+    /**
+     * The notification currently being played.
+     * Returns the playing message if set, otherwise falls back to cursor position.
+     */
+    fun getPlayingOrAtCursor(): VoiceNotification? {
+        return _playingNotification ?: getAtCursor()
     }
 
     fun getAtCursor(): VoiceNotification? {

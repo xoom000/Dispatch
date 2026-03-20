@@ -196,8 +196,7 @@ class TtsEngine @Inject constructor(
 
     /**
      * Blocking version of speak — runs on the CALLING thread.
-     * Use this when the caller needs to serialize Piper audio with
-     * other audio (e.g., GPU AudioTrack on AudioStreamClient's playback executor).
+     * Use this when the caller needs to serialize Piper audio on a dedicated thread.
      * Does NOT queue on TtsEngine's internal executor.
      */
     fun speakBlocking(sender: String, message: String) {

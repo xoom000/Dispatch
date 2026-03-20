@@ -29,7 +29,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.digitalgnosis.dispatch.config.TailscaleConfig
 import dagger.hilt.android.AndroidEntryPoint
 import dev.digitalgnosis.dispatch.config.TokenManager
-import dev.digitalgnosis.dispatch.network.AudioStreamClient
 import dev.digitalgnosis.dispatch.network.SseConnectionService
 import dev.digitalgnosis.dispatch.tts.ModelManager
 import dev.digitalgnosis.dispatch.tts.TtsEngine
@@ -49,7 +48,6 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var tokenManager: TokenManager
     @Inject lateinit var ttsEngine: TtsEngine
     @Inject lateinit var modelManager: ModelManager
-    @Inject lateinit var audioStreamClient: AudioStreamClient
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -80,7 +78,6 @@ class MainActivity : ComponentActivity() {
                         tokenManager = tokenManager,
                         modelManager = modelManager,
                         ttsEngine = ttsEngine,
-                        audioStreamClient = audioStreamClient,
                     )
                 }
             }
@@ -116,7 +113,6 @@ fun DispatchApp(
     tokenManager: TokenManager,
     modelManager: ModelManager,
     ttsEngine: TtsEngine,
-    audioStreamClient: AudioStreamClient,
 ) {
     val context = LocalContext.current
     val dims = LocalDisplayDimensions.current
@@ -153,7 +149,6 @@ fun DispatchApp(
             tokenManager = tokenManager,
             modelManager = modelManager,
             ttsEngine = ttsEngine,
-            audioStreamClient = audioStreamClient,
             onBack = { showSettings = false },
         )
         return

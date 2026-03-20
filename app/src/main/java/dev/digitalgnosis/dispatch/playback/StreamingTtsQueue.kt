@@ -28,7 +28,7 @@ class StreamingTtsQueue @Inject constructor(
     fun enqueue(text: String, department: String) {
         if (text.isBlank()) return
 
-        val voice = voiceForDepartment(department)
+        val voice = VoiceMap.voiceFor(department)
         Timber.d("StreamingTts: enqueue %d chars → voice=%s dept=%s", text.length, voice, department)
 
         val intent = DispatchPlaybackService.createIntent(
@@ -48,26 +48,23 @@ class StreamingTtsQueue @Inject constructor(
     }
 
     /**
-     * Reset state between streaming sessions.
-     * No internal queue here — DispatchPlaybackService owns the queue.
-     * This is a hook for future rate-limiting or cancellation logic.
+     * Cancel any queued sentences from the previous streaming session.
+     * Called at the start of sendStreaming() to prevent the previous response's
+     * remaining sentences from interleaving with the new session's sentences.
+     *
+     * Sends ACTION_CANCEL_STREAMING to DispatchPlaybackService, which drains
+     * all queued items that came from streaming TTS (fcmReceiveTime == 0L).
      */
-    fun reset() {
-        Timber.d("StreamingTts: reset")
-    }
-
-    private fun voiceForDepartment(department: String): String {
-        return when (department.lowercase()) {
-            "eng", "engineering" -> "am_puck"
-            "pm", "product" -> "am_michael"
-            "design", "ux" -> "af_sky"
-            "boardroom" -> "am_puck"
-            "data", "analytics" -> "am_michael"
-            else -> DEFAULT_VOICE
+    fun cancel() {
+        Timber.d("StreamingTts: cancel — draining queued sentences")
+        try {
+            context.startService(DispatchPlaybackService.createCancelStreamingIntent(context))
+        } catch (e: Exception) {
+            Timber.w(e, "StreamingTts: cancel intent failed (service may not be running)")
         }
     }
 
     companion object {
-        private const val DEFAULT_VOICE = "am_puck"
+        // Voice mapping is in VoiceMap.kt — single source of truth.
     }
 }

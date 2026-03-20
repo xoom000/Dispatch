@@ -1,18 +1,21 @@
 package dev.digitalgnosis.dispatch.ui.viewmodels
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.digitalgnosis.dispatch.data.ChatBubble
 import dev.digitalgnosis.dispatch.data.ChatBubbleRepository
 import dev.digitalgnosis.dispatch.data.SessionRepository
 import dev.digitalgnosis.dispatch.data.StreamEvent
-import dev.digitalgnosis.dispatch.network.AudioStreamClient
+import dev.digitalgnosis.dispatch.playback.DispatchPlaybackService
 import dev.digitalgnosis.dispatch.playback.StreamingTtsQueue
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -21,7 +24,6 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -38,8 +40,8 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class MessagesViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val chatBubbleRepository: ChatBubbleRepository,
-    private val audioStreamClient: AudioStreamClient,
     private val sessionRepository: SessionRepository,
     private val streamingTtsQueue: StreamingTtsQueue,
 ) : ViewModel() {
@@ -104,18 +106,24 @@ class MessagesViewModel @Inject constructor(
     data class AudioRequest(val text: String, val voice: String?, val sequence: Int)
 
     init {
-        // Single consumer for the audio queue — ensures sequential playback
-        viewModelScope.launch(Dispatchers.IO) {
+        // Consume audio requests and route through DispatchPlaybackService (ExoPlayer/Media3).
+        // The service serializes playback internally — no blocking needed here.
+        viewModelScope.launch {
             for (request in _audioQueue) {
                 _playingSequence.value = request.sequence
                 try {
-                    audioStreamClient.replayMessage(
-                        _department.value,
-                        request.text,
-                        request.voice
+                    val resolvedVoice = if (request.voice.isNullOrBlank()) "am_michael" else request.voice
+                    val spokenText = "${_department.value} says: ${request.text}"
+                    val intent = DispatchPlaybackService.createIntent(
+                        context = context,
+                        text = spokenText,
+                        voice = resolvedVoice,
+                        sender = _department.value,
+                        message = request.text,
                     )
+                    context.startForegroundService(intent)
                 } catch (e: Exception) {
-                    Timber.e(e, "MessagesVM: audio playback failed for seq %d", request.sequence)
+                    Timber.e(e, "MessagesVM: audio replay failed for seq %d", request.sequence)
                 } finally {
                     _playingSequence.value = null
                 }
@@ -265,7 +273,7 @@ class MessagesViewModel @Inject constructor(
         _streamingToolStatus.value = null
         _isSending.value = true
         _department.value = department
-        streamingTtsQueue.reset()
+        streamingTtsQueue.cancel()
 
         streamJob?.cancel()
         streamJob = viewModelScope.launch(Dispatchers.IO) {

@@ -24,14 +24,12 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import dev.digitalgnosis.dispatch.config.TokenManager
-import dev.digitalgnosis.dispatch.network.AudioStreamClient
+import dev.digitalgnosis.dispatch.playback.DispatchPlaybackService
 import dev.digitalgnosis.dispatch.tts.ModelManager
 import dev.digitalgnosis.dispatch.tts.ModelState
 import dev.digitalgnosis.dispatch.tts.TtsEngine
 import dev.digitalgnosis.dispatch.ui.viewmodels.SettingsViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.File
 
@@ -42,7 +40,6 @@ fun SettingsScreen(
     tokenManager: TokenManager,
     modelManager: ModelManager,
     ttsEngine: TtsEngine,
-    audioStreamClient: AudioStreamClient,
     viewModel: SettingsViewModel = hiltViewModel(),
     onBack: (() -> Unit)? = null,
 ) {
@@ -83,13 +80,13 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(4.dp))
             UpdateCard(viewModel = viewModel)
             TokenCard(token = token)
-            VoiceMapCard(viewModel = viewModel, audioStreamClient = audioStreamClient)
+            VoiceMapCard(viewModel = viewModel)
             VoiceModelCard(state = modelState)
             VoiceSettingsCard(
                 ttsEngine = ttsEngine,
                 isReady = modelState is ModelState.Ready,
             )
-            StreamDiagnosticCard(audioStreamClient = audioStreamClient)
+            StreamDiagnosticCard(viewModel = viewModel)
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
@@ -190,10 +187,8 @@ private fun TokenCard(token: String) {
 }
 
 @Composable
-private fun VoiceMapCard(
-    viewModel: SettingsViewModel,
-    audioStreamClient: AudioStreamClient,
-) {
+private fun VoiceMapCard(viewModel: SettingsViewModel) {
+    val context = LocalContext.current
     val voiceMapResult by viewModel.voiceMap.collectAsState()
     val loading by viewModel.isLoading.collectAsState()
     var editingDept by remember { mutableStateOf<String?>(null) }
@@ -263,12 +258,17 @@ private fun VoiceMapCard(
                             IconButton(
                                 onClick = {
                                     scope.launch {
-                                        withContext(Dispatchers.IO) {
-                                            audioStreamClient.streamAndPlay(
-                                                "$dept voice test.",
-                                                voice,
+                                        try {
+                                            context.startForegroundService(
+                                                DispatchPlaybackService.createIntent(
+                                                    context = context,
+                                                    text = "$dept voice test.",
+                                                    voice = voice,
+                                                    sender = "system",
+                                                    message = "$dept voice test.",
+                                                )
                                             )
-                                        }
+                                        } catch (_: Exception) { }
                                     }
                                 },
                                 modifier = Modifier.size(28.dp),
@@ -299,7 +299,6 @@ private fun VoiceMapCard(
             department = dept,
             currentVoice = currentVoice,
             availableVoices = availableVoices,
-            audioStreamClient = audioStreamClient,
             onVoiceSelected = { newVoice ->
                 viewModel.updateVoiceAssignment(dept, newVoice)
                 editingDept = null
@@ -314,10 +313,10 @@ private fun VoicePickerDialog(
     department: String,
     currentVoice: String,
     availableVoices: List<String>,
-    audioStreamClient: AudioStreamClient,
     onVoiceSelected: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -344,9 +343,17 @@ private fun VoicePickerDialog(
                         IconButton(
                             onClick = {
                                 scope.launch {
-                                    withContext(Dispatchers.IO) {
-                                        audioStreamClient.streamAndPlay("Testing $voice voice.", voice)
-                                    }
+                                    try {
+                                        context.startForegroundService(
+                                            DispatchPlaybackService.createIntent(
+                                                context = context,
+                                                text = "Testing $voice voice.",
+                                                voice = voice,
+                                                sender = "system",
+                                                message = "Testing $voice voice.",
+                                            )
+                                        )
+                                    } catch (_: Exception) { }
                                 }
                             },
                             modifier = Modifier.size(32.dp),
@@ -459,9 +466,9 @@ private fun VoiceSettingsCard(ttsEngine: TtsEngine, isReady: Boolean) {
 }
 
 @Composable
-private fun StreamDiagnosticCard(audioStreamClient: AudioStreamClient) {
-    var status by remember { mutableStateOf<String?>(null) }
-    var testing by remember { mutableStateOf(false) }
+private fun StreamDiagnosticCard(viewModel: SettingsViewModel) {
+    val context = LocalContext.current
+    val connectionStatus by viewModel.connectionStatus.collectAsState()
     val scope = rememberCoroutineScope()
 
     Card(
@@ -478,41 +485,34 @@ private fun StreamDiagnosticCard(audioStreamClient: AudioStreamClient) {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = status ?: "Test connection to Oasis GPU server",
+                text = connectionStatus ?: "Test connection to Oasis GPU server",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
-                    onClick = {
-                        testing = true
-                        scope.launch {
-                            val res = withContext(Dispatchers.IO) {
-                                audioStreamClient.testConnection()
-                            }
-                            status = res
-                            testing = false
-                        }
-                    },
-                    enabled = !testing,
+                    onClick = { viewModel.testConnection() },
                     modifier = Modifier.weight(1f),
                 ) {
-                    if (testing) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                    } else {
-                        Text("Test Connect")
-                    }
+                    Text("Test Connect")
                 }
                 Button(
                     onClick = {
                         scope.launch {
-                            withContext(Dispatchers.IO) {
-                                audioStreamClient.streamAndPlay("Network pipeline test successful.", "am_michael")
-                            }
+                            try {
+                                context.startForegroundService(
+                                    DispatchPlaybackService.createIntent(
+                                        context = context,
+                                        text = "Network pipeline test successful.",
+                                        voice = "am_michael",
+                                        sender = "system",
+                                        message = "Network pipeline test successful.",
+                                    )
+                                )
+                            } catch (_: Exception) { }
                         }
                     },
-                    enabled = !testing,
                     modifier = Modifier.weight(1f),
                 ) {
                     Text("Test Stream")

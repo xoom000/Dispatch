@@ -26,7 +26,6 @@ import dev.digitalgnosis.dispatch.audio.PlaybackUiState
  * - Agent avatar + sender name + message preview
  * - Play/pause button
  * - Skip next button (next queued message)
- * - Recording indicator when voice reply is active
  *
  * Placed ABOVE the bottom nav bar in the scaffold.
  */
@@ -73,29 +72,20 @@ fun MiniPlayerBar(
 
                     // Sender + message preview
                     Column(modifier = Modifier.weight(1f)) {
-                        if (state.isRecording) {
-                            Text(
-                                text = "Recording reply to ${state.replyTarget}...",
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.error,
-                                fontWeight = FontWeight.Bold,
-                            )
-                        } else {
-                            Text(
-                                text = state.sender,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                text = state.messagePreview,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
+                        Text(
+                            text = state.sender,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = state.messagePreview,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
 
                         // Queue count
                         if (state.pendingCount > 1) {

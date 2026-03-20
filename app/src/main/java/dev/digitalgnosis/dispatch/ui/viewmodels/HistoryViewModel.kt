@@ -1,12 +1,14 @@
 package dev.digitalgnosis.dispatch.ui.viewmodels
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.digitalgnosis.dispatch.data.HistoryMessage
 import dev.digitalgnosis.dispatch.data.HistoryRepository
-import dev.digitalgnosis.dispatch.network.AudioStreamClient
 import dev.digitalgnosis.dispatch.network.FileTransferClient
+import dev.digitalgnosis.dispatch.playback.DispatchPlaybackService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,9 +20,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val historyRepository: HistoryRepository,
     private val fileTransferClient: FileTransferClient,
-    private val audioStreamClient: AudioStreamClient
 ) : ViewModel() {
 
     private val _history = MutableStateFlow<List<HistoryMessage>>(emptyList())
@@ -113,14 +115,19 @@ class HistoryViewModel @Inject constructor(
     }
 
     fun replayMessage(message: HistoryMessage) {
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                audioStreamClient.replayMessage(
-                    sender = message.sender,
-                    message = message.message,
-                    voice = message.voice
-                )
-            }
+        val resolvedVoice = if (message.voice.isNullOrBlank()) "am_michael" else message.voice
+        val spokenText = "${message.sender} says: ${message.message}"
+        try {
+            val intent = DispatchPlaybackService.createIntent(
+                context = context,
+                text = spokenText,
+                voice = resolvedVoice,
+                sender = message.sender,
+                message = message.message,
+            )
+            context.startForegroundService(intent)
+        } catch (e: Exception) {
+            Timber.e(e, "HistoryVM: replay failed for message from %s", message.sender)
         }
     }
 

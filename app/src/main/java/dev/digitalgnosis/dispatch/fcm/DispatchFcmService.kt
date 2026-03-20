@@ -16,6 +16,7 @@ import dev.digitalgnosis.dispatch.data.VoiceNotification
 import dev.digitalgnosis.dispatch.data.VoiceNotificationRepository
 import dev.digitalgnosis.dispatch.logging.FileLogTree
 import dev.digitalgnosis.dispatch.playback.DispatchPlaybackService
+import dev.digitalgnosis.dispatch.playback.VoiceMap
 import dev.digitalgnosis.dispatch.ui.MainActivity
 import timber.log.Timber
 
@@ -103,7 +104,7 @@ class DispatchFcmService : FirebaseMessagingService() {
         // The service promotes to foreground immediately, holding the process alive
         // through the entire download + playback pipeline.
         val spokenText = "$sender says: $messageText"
-        val resolvedVoice = voice ?: voiceForSender(sender)
+        val resolvedVoice = voice ?: VoiceMap.voiceFor(sender)
 
         Timber.i("FCM -> starting DispatchPlaybackService at +%dms: voice=%s",
             System.currentTimeMillis() - receiveTime, resolvedVoice)
@@ -183,27 +184,6 @@ class DispatchFcmService : FirebaseMessagingService() {
         } catch (e: Exception) {
             Timber.w(e, "FCM log flush failed")
         }
-    }
-
-    /**
-     * Default voice mapping for senders when FCM payload doesn't include voice.
-     * Mirrors the CLI-side mapping in dispatch config.py.
-     */
-    private fun voiceForSender(sender: String): String = when (sender.lowercase()) {
-        "engineering" -> "am_michael"
-        "watchman" -> "am_adam"
-        "boardroom", "ceo" -> "am_eric"
-        "dispatch" -> "am_puck"
-        "aegis" -> "am_fenrir"
-        "research" -> "bm_george"
-        "hunter" -> "am_onyx"
-        "alchemist" -> "am_liam"
-        "prompt-engine" -> "am_echo"
-        "trinity" -> "af_nova"
-        "it" -> "am_adam"
-        "cipher" -> "bm_lewis"
-        "axiom" -> "bm_fable"
-        else -> "am_michael"
     }
 
     private fun showNotification(sender: String, message: String) {

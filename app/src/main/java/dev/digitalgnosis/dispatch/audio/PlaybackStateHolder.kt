@@ -49,21 +49,6 @@ class PlaybackStateHolder @Inject constructor() {
         _state.value = _state.value.copy(pendingCount = pending)
     }
 
-    /** Called when voice reply recording starts. */
-    fun onVoiceReplyStarted(targetDept: String) {
-        _state.value = _state.value.copy(
-            isRecording = true,
-            replyTarget = targetDept,
-        )
-    }
-
-    /** Called when voice reply recording ends. */
-    fun onVoiceReplyEnded() {
-        _state.value = _state.value.copy(
-            isRecording = false,
-            replyTarget = null,
-        )
-    }
 }
 
 /**
@@ -76,6 +61,4 @@ data class PlaybackUiState(
     val messagePreview: String = "",
     val voice: String = "",
     val pendingCount: Int = 0,
-    val isRecording: Boolean = false,
-    val replyTarget: String? = null,
 )

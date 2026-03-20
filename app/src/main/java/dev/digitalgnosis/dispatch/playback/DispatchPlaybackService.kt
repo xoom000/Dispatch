@@ -5,20 +5,17 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Looper
+import android.os.HandlerThread
+import android.os.Process
 import androidx.annotation.OptIn
 import androidx.core.app.NotificationCompat
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
-import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
-import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.BaseDataSource
 import androidx.media3.datasource.DataSource
-import androidx.media3.datasource.DataSpec
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.session.DefaultMediaNotificationProvider
@@ -44,8 +41,6 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import timber.log.Timber
 import java.io.File
-import java.io.IOException
-import java.io.InputStream
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
@@ -93,11 +88,25 @@ class DispatchPlaybackService : MediaSessionService() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
+    /**
+     * Dedicated thread for ExoPlayer's internal playback looper.
+     * Prevents audio glitches when the main thread is busy (UI work, GC, etc.).
+     * Pattern: Gramophone GramophonePlaybackService.internalPlaybackThread
+     */
+    private val playbackThread = HandlerThread("ExoPlayer:Playback", Process.THREAD_PRIORITY_AUDIO)
+
     private var mediaSession: MediaSession? = null
     private var player: ExoPlayer? = null
 
     /** Tracks how many messages are still in the pipeline (downloading or playing). */
     private val pendingCount = AtomicInteger(0)
+
+    /**
+     * Set to true when the user explicitly pauses via earbud tap or UI button.
+     * Prevents new incoming messages from auto-resuming playback against user intent.
+     * Cleared when the user explicitly presses play.
+     */
+    @Volatile private var userPaused = false
 
     /**
      * Messages waiting to play. Streaming DataSources can't be pre-buffered by ExoPlayer
@@ -112,10 +121,6 @@ class DispatchPlaybackService : MediaSessionService() {
         val fcmReceiveTime: Long,
     )
     private val messageQueue = ArrayDeque<PendingMessage>()
-
-    /** Tap gesture debounce for Pixel Buds. */
-    private val tapHandler = android.os.Handler(Looper.getMainLooper())
-    private var pendingSingleTap: Runnable? = null
 
     private val httpClient = OkHttpClient.Builder()
         .connectTimeout(CONNECT_TIMEOUT_S, TimeUnit.SECONDS)
@@ -135,19 +140,13 @@ class DispatchPlaybackService : MediaSessionService() {
      */
     private val streamRegistry = ConcurrentHashMap<String, StreamRequest>()
 
-    private data class StreamRequest(
-        val text: String,
-        val voice: String,
-        val speed: Float,
-        val traceId: String?,
-        val startTime: Long = System.currentTimeMillis(),
-    )
-
     // ── Lifecycle ───────────────────────────────────────────────────
 
     @OptIn(UnstableApi::class)
     override fun onCreate() {
         super.onCreate()
+
+        playbackThread.start()
 
         createDownloadNotificationChannel()
 
@@ -167,13 +166,33 @@ class DispatchPlaybackService : MediaSessionService() {
                 /* handleAudioFocus= */ true
             )
             .setHandleAudioBecomingNoisy(true)
+            .setPlaybackLooper(playbackThread.looper)
             .build()
 
-        exoPlayer.addListener(PlayerEventListener())
+        exoPlayer.addListener(PlayerEventListener(
+            pendingCount = pendingCount,
+            playbackState = playbackState,
+            callbacks = object : PlayerEventListener.Callbacks {
+                override val messageQueueSize: Int get() = messageQueue.size
+                override fun playNextFromQueue() = this@DispatchPlaybackService.playNextFromQueue()
+                override fun flushLogs() = this@DispatchPlaybackService.flushLogs()
+                override fun onQueueBecameEmpty() {
+                    voiceNotificationRepository.setPlayingNotification(null)
+                }
+            }
+        ))
         player = exoPlayer
 
-        // ForwardingPlayer intercepts skip commands for voice reply
-        val dispatchPlayer = DispatchForwardingPlayer(exoPlayer)
+        // Wrap with EndedWorkaroundPlayer to fix Media3 STATE_ENDED → STATE_IDLE race on seekTo(0).
+        // Then wrap with DispatchForwardingPlayer to intercept earbud skip commands for voice reply,
+        // and to track user-initiated pause/play so new messages don't auto-resume against user intent.
+        val workaroundPlayer = EndedWorkaroundPlayer(exoPlayer)
+        val dispatchPlayer = DispatchForwardingPlayer(
+            player = workaroundPlayer,
+            onVoiceReplyRequested = { startVoiceReply() },
+            onUserPaused = { userPaused = true },
+            onUserPlayed = { userPaused = false },
+        )
 
         mediaSession = MediaSession.Builder(this, dispatchPlayer).build()
 
@@ -186,6 +205,18 @@ class DispatchPlaybackService : MediaSessionService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // Let MediaSessionService handle its internal binding
         super.onStartCommand(intent, flags, startId)
+
+        // Cancel action: drain queued streaming sentences (sent by StreamingTtsQueue.cancel()).
+        // Streaming sentences have fcmReceiveTime == 0L (no FCM timestamp) unlike FCM voice messages.
+        if (intent?.action == ACTION_CANCEL_STREAMING) {
+            val sizeBefore = messageQueue.size
+            messageQueue.removeAll { it.fcmReceiveTime == 0L }
+            val drained = sizeBefore - messageQueue.size
+            val count = pendingCount.addAndGet(-drained).coerceAtLeast(0)
+            Timber.i("DispatchPlaybackService: cancel streaming — drained %d sentences, pending=%d",
+                drained, count)
+            return START_STICKY
+        }
 
         val text = intent?.getStringExtra(EXTRA_TEXT)
         val voice = intent?.getStringExtra(EXTRA_VOICE)
@@ -209,9 +240,11 @@ class DispatchPlaybackService : MediaSessionService() {
         // MediaSessionService will take over notification once ExoPlayer has media items.
         startForeground(NOTIFICATION_ID, buildDownloadNotification("Streaming from $sender..."))
 
-        // If player is paused from a stale earbud tap, auto-resume for new message
+        // If player is paused but the user did NOT explicitly pause (e.g. transient state),
+        // auto-resume. If the user intentionally paused, respect it — queue the new message
+        // but don't restart audio without consent.
         player?.let { p ->
-            if (!p.isPlaying && p.playbackState == Player.STATE_READY) {
+            if (!p.isPlaying && p.playbackState == Player.STATE_READY && !userPaused) {
                 Timber.i("DispatchPlaybackService: stale pause detected — auto-resuming")
                 p.play()
             }
@@ -236,6 +269,7 @@ class DispatchPlaybackService : MediaSessionService() {
         }
         mediaSession = null
         player = null
+        playbackThread.quitSafely()
         cleanTempFiles()
         Timber.i("DispatchPlaybackService: destroyed")
         super.onDestroy()
@@ -419,7 +453,7 @@ class DispatchPlaybackService : MediaSessionService() {
             )
             .build()
 
-        val dataSourceFactory = DataSource.Factory { TtsStreamDataSource() }
+        val dataSourceFactory = DataSource.Factory { TtsStreamDataSource(streamRegistry, streamingClient) }
         val mediaSource = ProgressiveMediaSource.Factory(
             dataSourceFactory,
             RawPcmExtractor.factory(KOKORO_SAMPLE_RATE),
@@ -429,6 +463,13 @@ class DispatchPlaybackService : MediaSessionService() {
         p.addMediaSource(mediaSource)
         p.prepare()
         p.play()
+
+        // Track which notification is currently playing so voice reply targets the right sender.
+        // The cursor resets to 0 (newest) on every add(), so without this, a queued message N
+        // arriving while message M is playing would cause double-tap to reply to the wrong sender.
+        val playingNotification = voiceNotificationRepository.notifications.value
+            .firstOrNull { it.sender.equals(sender, ignoreCase = true) }
+        voiceNotificationRepository.setPlayingNotification(playingNotification)
 
         val queueMs = if (fcmReceiveTime > 0) System.currentTimeMillis() - fcmReceiveTime else -1L
         Timber.i("[trace:%s] DispatchPlaybackService: PLAYING stream, pending=%d, queued=%d, fcm->play=%dms",
@@ -441,141 +482,6 @@ class DispatchPlaybackService : MediaSessionService() {
         Timber.i("[trace:%s] DispatchPlaybackService: playing next from queue, %d remaining",
             next.traceId ?: "none", messageQueue.size)
         playStreamingItem(next.text, next.voice, next.sender, next.traceId, next.fcmReceiveTime)
-    }
-
-    /**
-     * Custom DataSource that POSTs to Kokoro's streaming TTS endpoint
-     * and feeds audio bytes directly to ExoPlayer as they generate.
-     *
-     * ExoPlayer calls open() → we POST to Kokoro, get a chunked response.
-     * ExoPlayer calls read() → we hand it bytes from the response stream.
-     * ExoPlayer starts playback as soon as it has the WAV header + first PCM chunk.
-     */
-    @OptIn(UnstableApi::class)
-    /**
-     * Custom DataSource that POSTs to Kokoro's streaming TTS endpoint.
-     *
-     * Implements the FULL BaseDataSource contract verified from OkHttpDataSource:
-     *   open()  -> transferInitializing() -> transferStarted() -> return LENGTH_UNSET
-     *   read()  -> bytesTransferred() after each read -> RESULT_END_OF_INPUT on EOF
-     *   close() -> transferEnded()
-     *
-     * Reference: .project/modules/media3/samples/datasource-contract.md
-     */
-    private inner class TtsStreamDataSource : BaseDataSource(/* isNetwork= */ true) {
-
-        private var response: okhttp3.Response? = null
-        private var inputStream: InputStream? = null
-        private var dataSpec: DataSpec? = null
-        private var traceId: String? = null
-        private var totalBytesRead = 0L
-        private var opened = false
-
-        override fun open(dataSpec: DataSpec): Long {
-            this.dataSpec = dataSpec
-
-            val streamId = dataSpec.uri.lastPathSegment
-                ?: throw IOException("Missing stream ID in URI: ${dataSpec.uri}")
-
-            val req = streamRegistry.remove(streamId)
-                ?: throw IOException("Unknown stream ID: $streamId")
-
-            traceId = req.traceId
-
-            // REQUIRED: signal transfer initializing BEFORE any I/O
-            transferInitializing(dataSpec)
-
-            val payload = JSONObject().apply {
-                put("text", req.text)
-                put("voice", req.voice)
-                put("speed", req.speed.toDouble())
-            }
-
-            val requestBuilder = Request.Builder()
-                .url(TailscaleConfig.TTS_STREAM_SERVER)
-                .post(payload.toString().toRequestBody("application/json".toMediaType()))
-
-            req.traceId?.let { requestBuilder.header("X-Trace-Id", it) }
-
-            Timber.i("[trace:%s] TtsStreamDataSource: POST to Kokoro", traceId ?: "none")
-
-            response = streamingClient.newCall(requestBuilder.build()).execute()
-
-            if (!response!!.isSuccessful) {
-                val code = response!!.code
-                response!!.close()
-                throw IOException("Kokoro stream returned HTTP $code")
-            }
-
-            inputStream = response!!.body?.byteStream()
-                ?: throw IOException("Kokoro stream returned empty body")
-
-            // Strip the 44-byte WAV header. Kokoro sends placeholder data_size=0x7FFFFF00
-            // which causes WavExtractor to never reach STATE_ENDED (it recalculates bytesLeft
-            // from the header size every read call). By consuming the header here and using
-            // RawPcmExtractor, ExoPlayer reads raw PCM and stops cleanly at END_OF_INPUT.
-            val header = ByteArray(WAV_HEADER_BYTES)
-            var headerRead = 0
-            while (headerRead < WAV_HEADER_BYTES) {
-                val n = inputStream!!.read(header, headerRead, WAV_HEADER_BYTES - headerRead)
-                if (n == -1) throw IOException("Stream ended before WAV header complete")
-                headerRead += n
-            }
-
-            opened = true
-
-            // REQUIRED: signal transfer started AFTER successful open
-            transferStarted(dataSpec)
-
-            val connectMs = System.currentTimeMillis() - req.startTime
-            Timber.i("[trace:%s] TtsStreamDataSource: connected, header stripped, %dms",
-                traceId ?: "none", connectMs)
-
-            return C.LENGTH_UNSET.toLong()
-        }
-
-        override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
-            if (length == 0) return 0
-
-            val stream = inputStream ?: return C.RESULT_END_OF_INPUT
-
-            val bytesRead = try {
-                stream.read(buffer, offset, length)
-            } catch (e: IOException) {
-                Timber.w("[trace:%s] TtsStreamDataSource: IOException after %d bytes: %s",
-                    traceId ?: "none", totalBytesRead, e.message)
-                return C.RESULT_END_OF_INPUT
-            }
-
-            if (bytesRead == -1) {
-                Timber.i("[trace:%s] TtsStreamDataSource: END_OF_INPUT after %d bytes",
-                    traceId ?: "none", totalBytesRead)
-                return C.RESULT_END_OF_INPUT
-            }
-
-            totalBytesRead += bytesRead
-
-            // REQUIRED: notify transfer listeners after every successful read
-            bytesTransferred(bytesRead)
-
-            return bytesRead
-        }
-
-        override fun getUri(): Uri? = dataSpec?.uri
-
-        override fun close() {
-            Timber.i("[trace:%s] TtsStreamDataSource: close() — %d bytes total",
-                traceId ?: "none", totalBytesRead)
-            try { inputStream?.close() } catch (_: Exception) {}
-            try { response?.close() } catch (_: Exception) {}
-            inputStream = null
-            response = null
-            if (opened) {
-                opened = false
-                // REQUIRED: signal transfer ended in close
-                transferEnded()
-            }
-        }
     }
 
     /** Called when a message finishes (playback complete or fallback done). */
@@ -594,182 +500,21 @@ class DispatchPlaybackService : MediaSessionService() {
         }
     }
 
-    // ── Player Event Listener ───────────────────────────────────────
-
-    private inner class PlayerEventListener : Player.Listener {
-
-        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-            if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
-                // Previous item finished, next started automatically
-                val remaining = pendingCount.decrementAndGet().coerceAtLeast(0)
-                Timber.i("DispatchPlaybackService: media transition, pending=%d", remaining)
-                playbackState.onQueueCountChanged(remaining)
-            }
-        }
-
-        override fun onPlaybackStateChanged(playbackState: Int) {
-            when (playbackState) {
-                Player.STATE_ENDED -> {
-                    val remaining = pendingCount.decrementAndGet().coerceAtLeast(0)
-                    Timber.i("DispatchPlaybackService: playback ended, pending=%d, queued=%d",
-                        remaining, messageQueue.size)
-                    flushLogs()
-
-                    // Play next queued message if any
-                    if (messageQueue.isNotEmpty()) {
-                        playNextFromQueue()
-                    } else if (remaining <= 0) {
-                        this@DispatchPlaybackService.playbackState.onQueueEmpty()
-                    }
-                }
-                Player.STATE_READY -> {
-                    Timber.d("DispatchPlaybackService: player ready")
-                }
-                Player.STATE_BUFFERING -> {
-                    Timber.d("DispatchPlaybackService: player buffering")
-                }
-                else -> {}
-            }
-        }
-
-        override fun onPlayerError(error: PlaybackException) {
-            Timber.e(error, "DispatchPlaybackService: ExoPlayer error — %s", error.message)
-            pendingCount.decrementAndGet().coerceAtLeast(0)
-
-            // Try next queued message if any
-            if (messageQueue.isNotEmpty()) {
-                Timber.i("DispatchPlaybackService: error recovery — playing next from queue")
-                playNextFromQueue()
-            } else {
-                pendingCount.set(0)
-                this@DispatchPlaybackService.playbackState.onQueueEmpty()
-            }
-        }
-
-        override fun onIsPlayingChanged(isPlaying: Boolean) {
-            if (isPlaying) {
-                this@DispatchPlaybackService.playbackState.onPlaybackResumed()
-            } else {
-                this@DispatchPlaybackService.playbackState.onPlaybackPaused()
-            }
-        }
-    }
-
-    // ── ForwardingPlayer (Earbud Control) ───────────────────────────
-
-    /**
-     * Intercepts skip commands for custom behavior:
-     * - seekToNext → voice reply (double tap on Pixel Buds)
-     * - seekToPrevious → reserved (triple tap)
-     * - play/pause → handled by ExoPlayer natively
-     */
-    private inner class DispatchForwardingPlayer(
-        player: ExoPlayer
-    ) : ForwardingPlayer(player) {
-
-        override fun seekToNext() {
-            Timber.i("MediaSession: double tap — starting voice reply")
-            startVoiceReply()
-        }
-
-        override fun seekToPrevious() {
-            Timber.i("MediaSession: triple tap — reserved")
-            // Reserved for future use
-        }
-    }
-
     // ── Voice Reply ─────────────────────────────────────────────────
 
     private fun startVoiceReply() {
-        val lastNotification = voiceNotificationRepository.getAtCursor()
-        val rawSender = lastNotification?.sender
-        val targetDepartment = if (rawSender.isNullOrBlank() || rawSender == "dispatch") {
-            "boardroom"
-        } else {
-            rawSender
-        }
-        val threadId = lastNotification?.cmailThreadId
-
-        Timber.i("VoiceReply: starting reply to %s (thread=%s)", targetDepartment, threadId ?: "none")
-
-        // Play audio cue
-        playStatusMessage("Reply to $targetDepartment. Go ahead.")
-
-        // Launch speech recognition after cue plays
-        android.os.Handler(mainLooper).postDelayed({
-            launchSpeechRecognition(targetDepartment, threadId)
-        }, VOICE_CUE_DELAY_MS)
-    }
-
-    private fun launchSpeechRecognition(targetDepartment: String, threadId: String?) {
-        if (!android.speech.SpeechRecognizer.isRecognitionAvailable(this)) {
-            Timber.e("VoiceReply: SpeechRecognizer not available")
-            playStatusMessage("Voice recognition not available")
-            return
-        }
-
-        val recognizer = android.speech.SpeechRecognizer.createSpeechRecognizer(this)
-        recognizer.setRecognitionListener(object : android.speech.RecognitionListener {
-            override fun onReadyForSpeech(params: android.os.Bundle?) {
-                Timber.i("VoiceReply: mic is hot")
-                playListeningBeep()
+        val p = player ?: return
+        VoiceReplySession(
+            context = this,
+            player = p,
+            voiceNotificationRepository = voiceNotificationRepository,
+            voiceReplyCoordinator = voiceReplyCoordinator,
+            scope = serviceScope,
+            callbacks = object : VoiceReplySession.Callbacks {
+                override fun playStatusMessage(text: String) =
+                    this@DispatchPlaybackService.playStatusMessage(text)
             }
-            override fun onBeginningOfSpeech() { Timber.i("VoiceReply: speech detected") }
-            override fun onRmsChanged(rmsdB: Float) {}
-            override fun onBufferReceived(buffer: ByteArray?) {}
-            override fun onEndOfSpeech() { Timber.i("VoiceReply: end of speech") }
-
-            override fun onError(error: Int) {
-                val msg = when (error) {
-                    android.speech.SpeechRecognizer.ERROR_NO_MATCH -> "Didn't catch that"
-                    android.speech.SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "No speech detected"
-                    android.speech.SpeechRecognizer.ERROR_AUDIO -> "Audio error"
-                    android.speech.SpeechRecognizer.ERROR_NETWORK -> "Network error"
-                    else -> "Recognition error $error"
-                }
-                Timber.w("VoiceReply: error %d — %s", error, msg)
-                playStatusMessage(msg)
-                recognizer.destroy()
-            }
-
-            override fun onResults(results: android.os.Bundle?) {
-                val transcription = results
-                    ?.getStringArrayList(android.speech.SpeechRecognizer.RESULTS_RECOGNITION)
-                    ?.firstOrNull()
-
-                if (transcription.isNullOrBlank()) {
-                    Timber.w("VoiceReply: empty transcription")
-                    playStatusMessage("Didn't catch that")
-                    recognizer.destroy()
-                    return
-                }
-
-                Timber.i("VoiceReply: transcribed %d chars -> %s", transcription.length, targetDepartment)
-                sendVoiceReply(targetDepartment, transcription, threadId)
-                recognizer.destroy()
-            }
-
-            override fun onPartialResults(partialResults: android.os.Bundle?) {}
-            override fun onEvent(eventType: Int, params: android.os.Bundle?) {}
-        })
-
-        val intent = android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(android.speech.RecognizerIntent.EXTRA_MAX_RESULTS, 1)
-            putExtra(android.speech.RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
-        }
-        recognizer.startListening(intent)
-    }
-
-    private fun sendVoiceReply(department: String, message: String, threadId: String?) {
-        serviceScope.launch(Dispatchers.IO) {
-            val sessionId = voiceReplyCoordinator.sendVoiceReply(department, message, threadId)
-            val statusMsg = if (sessionId != null) "Sent to $department" else "Failed to send reply"
-            withContext(Dispatchers.Main) {
-                playStatusMessage(statusMsg)
-            }
-        }
+        ).start()
     }
 
     /**
@@ -831,16 +576,6 @@ class DispatchPlaybackService : MediaSessionService() {
         nm.createNotificationChannel(playbackChannel)
     }
 
-    private fun playListeningBeep() {
-        try {
-            val toneGen = android.media.ToneGenerator(android.media.AudioManager.STREAM_MUSIC, 80)
-            toneGen.startTone(android.media.ToneGenerator.TONE_PROP_BEEP, 200)
-            android.os.Handler(mainLooper).postDelayed({ toneGen.release() }, 300)
-        } catch (e: Exception) {
-            Timber.w(e, "VoiceReply: beep failed (non-fatal)")
-        }
-    }
-
     // ── Utility ─────────────────────────────────────────────────────
 
     private fun flushLogs() {
@@ -864,6 +599,9 @@ class DispatchPlaybackService : MediaSessionService() {
     }
 
     companion object {
+        /** Intent action sent by StreamingTtsQueue.cancel() to drain queued sentences. */
+        const val ACTION_CANCEL_STREAMING = "dev.digitalgnosis.dispatch.CANCEL_STREAMING"
+
         const val EXTRA_TEXT = "text"
         const val EXTRA_VOICE = "voice"
         const val EXTRA_SENDER = "sender"
@@ -875,12 +613,10 @@ class DispatchPlaybackService : MediaSessionService() {
         private const val DOWNLOAD_CHANNEL_ID = "dispatch_download"
         private const val PLAYBACK_CHANNEL_ID = "dispatch_playback"
         private const val STATUS_VOICE = "am_puck"
-        private const val VOICE_CUE_DELAY_MS = 2500L
 
         private const val CONNECT_TIMEOUT_S = 5L
         private const val READ_TIMEOUT_S = 30L
         private const val WAV_HEADER_SIZE = 44L
-        private const val WAV_HEADER_BYTES = 44
         private const val KOKORO_SAMPLE_RATE = 24000
         private const val MAX_RETRIES = 2
         private const val RETRY_DELAY_MS = 2000L
@@ -901,5 +637,10 @@ class DispatchPlaybackService : MediaSessionService() {
             putExtra(EXTRA_TRACE_ID, traceId ?: "")
             putExtra(EXTRA_FCM_RECEIVE_TIME, fcmReceiveTime)
         }
+
+        fun createCancelStreamingIntent(context: Context): Intent =
+            Intent(context, DispatchPlaybackService::class.java).apply {
+                action = ACTION_CANCEL_STREAMING
+            }
     }
 }
