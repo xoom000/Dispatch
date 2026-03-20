@@ -9,7 +9,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import dev.digitalgnosis.dispatch.ui.components.ConversationHeader
@@ -92,20 +91,6 @@ fun MessagesScreen(
         }
     }
 
-    // Keyboard scroll: when IME opens (layout height shrinks), scroll to bottom
-    val layoutInfo = listState.layoutInfo
-    val previousHeight = remember { mutableIntStateOf(0) }
-    LaunchedEffect(layoutInfo.viewportEndOffset) {
-        val currentHeight = layoutInfo.viewportEndOffset
-        if (previousHeight.intValue > 0 && currentHeight < previousHeight.intValue) {
-            // Viewport shrank — keyboard likely opened. Scroll to bottom.
-            if (bubbles.isNotEmpty()) {
-                listState.animateScrollToItem(bubbles.size - 1)
-            }
-        }
-        previousHeight.intValue = currentHeight
-    }
-
     // JumpToBottom visibility: show when last item is not visible
     val jumpToBottomEnabled by remember {
         derivedStateOf {
@@ -115,14 +100,14 @@ fun MessagesScreen(
         }
     }
 
-    // FULL-SCREEN: renders outside Scaffold — no bottomBar conflicts.
-    // imePadding() on the input surface handles keyboard; parent handles status bar.
+    // imePadding belongs on InputBar, NOT here. Putting it on the Column
+    // causes a gap between keyboard and input bar. This was the root cause
+    // of 9 failed fix attempts. See: 2026-03-20-messages-screen-fix-plan.md
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surface)
             .statusBarsPadding()
-            .imePadding()
     ) {
         ConversationHeader(department = department, onBack = onBack)
 

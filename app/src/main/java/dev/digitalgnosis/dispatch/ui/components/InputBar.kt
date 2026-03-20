@@ -62,6 +62,7 @@ fun InputBar(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
+            .imePadding()
             .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.Bottom
     ) {
