@@ -51,7 +51,10 @@ internal class TtsStreamDataSource(
         val streamId = dataSpec.uri.lastPathSegment
             ?: throw IOException("Missing stream ID in URI: ${dataSpec.uri}")
 
-        val req = streamRegistry.remove(streamId)
+        // Use get(), not remove(). ExoPlayer retries on error and calls open() again
+        // with the same URI. If we remove() on the first call, retries fail with
+        // "Unknown stream ID". Cleanup happens in close() instead.
+        val req = streamRegistry[streamId]
             ?: throw IOException("Unknown stream ID: $streamId")
 
         traceId = req.traceId
@@ -144,6 +147,11 @@ internal class TtsStreamDataSource(
         try { response?.close() } catch (_: Exception) {}
         inputStream = null
         response = null
+
+        // Clean up the registry entry now that we're done (or failed).
+        // Safe to call on retries — remove() is idempotent on ConcurrentHashMap.
+        dataSpec?.uri?.lastPathSegment?.let { streamRegistry.remove(it) }
+
         if (opened) {
             opened = false
             // REQUIRED: signal transfer ended in close
