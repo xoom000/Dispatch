@@ -51,15 +51,16 @@ internal class TtsStreamDataSource(
         val streamId = dataSpec.uri.lastPathSegment
             ?: throw IOException("Missing stream ID in URI: ${dataSpec.uri}")
 
-        // Use get(), not remove(). ExoPlayer retries on error and calls open() again
-        // with the same URI. Cleanup happens in close() instead.
-        // If the stream ID isn't found, this is a stale load from a previous media source
-        // that was cleared via clearMediaItems(). Log and return gracefully — ExoPlayer
-        // treats the IOException as a source error and moves on.
         val req = streamRegistry[streamId]
         if (req == null) {
-            Timber.w("TtsStreamDataSource: stale stream ID %s — likely from cleared media source", streamId)
-            throw IOException("Stale stream ID: $streamId (previous media source was cleared)")
+            // Stale load from a previous media source. Return empty stream —
+            // ExoPlayer reads 0 bytes, hits END_OF_INPUT, and moves on silently.
+            // No exception, no onPlayerError, no pendingCount decrement.
+            Timber.d("TtsStreamDataSource: stale stream ID %s — returning empty", streamId)
+            opened = true
+            transferInitializing(dataSpec)
+            transferStarted(dataSpec)
+            return 0L
         }
 
         traceId = req.traceId
