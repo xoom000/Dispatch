@@ -52,10 +52,15 @@ internal class TtsStreamDataSource(
             ?: throw IOException("Missing stream ID in URI: ${dataSpec.uri}")
 
         // Use get(), not remove(). ExoPlayer retries on error and calls open() again
-        // with the same URI. If we remove() on the first call, retries fail with
-        // "Unknown stream ID". Cleanup happens in close() instead.
+        // with the same URI. Cleanup happens in close() instead.
+        // If the stream ID isn't found, this is a stale load from a previous media source
+        // that was cleared via clearMediaItems(). Log and return gracefully — ExoPlayer
+        // treats the IOException as a source error and moves on.
         val req = streamRegistry[streamId]
-            ?: throw IOException("Unknown stream ID: $streamId")
+        if (req == null) {
+            Timber.w("TtsStreamDataSource: stale stream ID %s — likely from cleared media source", streamId)
+            throw IOException("Stale stream ID: $streamId (previous media source was cleared)")
+        }
 
         traceId = req.traceId
 

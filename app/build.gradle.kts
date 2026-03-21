@@ -31,8 +31,8 @@ android {
         applicationId = "dev.digitalgnosis.dispatch"
         minSdk = 33
         targetSdk = 36
-        versionCode = 9
-        versionName = "1.0.9"
+        versionCode = 10
+        versionName = "1.0.10"
 
         // File Bridge API key — loaded from local.properties (gitignored)
         buildConfigField("String", "FB_API_KEY", "\"${fbApiKey}\"")

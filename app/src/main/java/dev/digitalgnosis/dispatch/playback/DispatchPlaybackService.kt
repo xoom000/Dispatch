@@ -503,6 +503,10 @@ class DispatchPlaybackService : MediaSessionService() {
             RawPcmExtractor.factory(KOKORO_SAMPLE_RATE),
         ).createMediaSource(mediaItem)
 
+        // Stop first to cancel any in-flight loads from the previous media source.
+        // Without this, clearMediaItems() can trigger a stale retry on the loader thread
+        // that hits a stream ID that's already been consumed or belongs to the old source.
+        p.stop()
         p.clearMediaItems()
         p.addMediaSource(mediaSource)
         p.prepare()
